@@ -29,11 +29,24 @@
 
 =head1 NAME
 
+    getNCBIseqs.pl 
+
 =head1 SYNOPSIS
+
+    perl getNCBIseqs.pl -d nuccore -t 'txid7460[Organism:exp]+AND+srcdb+refseq[Properties]+AND+biomol+RNA[Properties]' -o AmRefSeqRNA.fa
 
 =head1 ABSTRACT
 
+    Get sequences from NCBI using eutils (http://eutils.ncbi.nlm.nih.gov).    
+
 =head1 DESCRIPTION
+    
+    Arguments:
+
+        -h/--help       Help
+        -d/--db         Database name
+        -t/--term       Query term
+        -o/--outfile    Output file path
 
 =head1 AUTHOR
 
