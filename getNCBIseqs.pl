@@ -100,8 +100,9 @@ my $count = $1 if ($output =~ /<Count>(\d+)<\/Count>/);
 open(OUT, ">$outfile") || die "Can't open file ($outfile)!\n";
 
 
-#retrieve data in batches of 500
+#retrieve data in batches of 1000
 my $retmax = 1000;
+#maximum tries 10
 my $maxtries = 10;
 for (my $retstart = 0; $retstart < $count; $retstart += $retmax) {
         my $efetch_url = $base ."efetch.fcgi?db=nucleotide&WebEnv=$web";
