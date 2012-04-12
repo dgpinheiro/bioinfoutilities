@@ -43,10 +43,11 @@
     
     Arguments:
 
-        -h/--help       Help
-        -d/--db         Database name
-        -t/--term       Query term
-        -o/--outfile    Output file path
+        -h/--help           Help
+        -d/--db             Database name (e.g. nuccore)
+        -t/--term           Query term
+        -o/--outfile        Output file path
+        -e/--outfiletype    Output file type (e.g. fasta, genbank) DEFAULT: fasta
 
 =head1 AUTHOR
 
@@ -69,18 +70,21 @@ use Getopt::Long;
 
 use LWP::Simple;
 
-my ($query, $outfile, $db);
+my ($query, $outfile, $db, $outftype);
 
 Usage("Too few arguments") if $#ARGV < 0;
-GetOptions( "h|?|help"      => sub { &Usage(); },
-            "t|term=s"      => \$query,
-            "o|outfile=s"   => \$outfile,
-            "d|db=s"        => \$db
+GetOptions( "h|?|help"          => sub { &Usage(); },
+            "t|term=s"          => \$query,
+            "o|outfile=s"       => \$outfile,
+            "d|db=s"            => \$db,
+            "e|outfiletype=s"   => \$outftype
  ) or &Usage();
 
 die "Missing term value for the query" unless ($query);
 die "Missing db" unless ($db);
 die "Missing output file" unless ($outfile);
+
+$outftype||='fasta';
 
 #assemble the esearch URL
 my $base = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
@@ -107,7 +111,7 @@ my $maxtries = 10;
 for (my $retstart = 0; $retstart < $count; $retstart += $retmax) {
         my $efetch_url = $base ."efetch.fcgi?db=nucleotide&WebEnv=$web";
         $efetch_url .= "&query_key=$key&retstart=$retstart";
-        $efetch_url .= "&retmax=$retmax&rettype=fasta&retmode=text";
+        $efetch_url .= "&retmax=$retmax&rettype=$outftype&retmode=text";
         my $try = 1;
         TRY:
         my $efetch_out = get($efetch_url);
@@ -138,15 +142,16 @@ Daniel Guariz Pinheiro (dgpinheiro\@gmail.com)
 
 Usage
 
-        $0	[-h/--help] -d <DB> -t <TERM> -o <OUTFILE>
+        $0	[-h/--help] -d <DB> -t <TERM> -o <OUTFILE> [-e <OUTFILETYPE>]
 
 Argument(s)
 
-        -h      --help      Help
-        -d      --db        DB 
-        -t      --term      Term (query)
-        -o      --outfile   Output file
-        
+        -h      --help          Help
+        -d      --db            NCBI database (e.g. nuccore)
+        -t      --term          Term (query)
+        -o      --outfile       Output file
+        -e      --outfiletype   Output file type (e.g. fasta, genbank) DEFAULT: fasta
+
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
     print STDERR qq[$0  ] . q[$Revision$] . qq[\n];
