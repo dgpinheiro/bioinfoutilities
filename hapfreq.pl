@@ -130,8 +130,9 @@ $LOGGER->info("FIRST STEP...");
 
 my %DATA;
 
-open(POP, "<", 'pop.txt') or $LOGGER->logdie($!);
-while(<POP>) {
+#open(POP, "<", 'pop.txt') or $LOGGER->logdie($!);
+#while(<POP>) {
+while(<DATA>){
     chomp;
     next if ($_=~/^#/);
     my ($lv_one, $lv_two, $hmap, $desc) = split(/\t/, $_);
@@ -142,7 +143,7 @@ while(<POP>) {
                                     };
 }
 
-close(POP);
+#close(POP);
 
 open(IN, "<", $infile) or $LOGGER->logdie($!);
 
@@ -541,3 +542,33 @@ sub recpossibleshet {
         }
     }
 }
+
+__DATA__
+European	European	CEU	Utah residents (CEPH) with Northern and Western European ancestry (CEU)
+European	European	TSI	Toscani in Italia (TSI)
+European	European	GBR	British from England and Scotland (GBR)
+European	European	FIN	Finnish from Finland (FIN)
+European	European	IBS	Iberian populations in Spain (IBS)
+Asian	East-Asian	CHB	Han Chinese in Beijing, China (CHB)
+Asian	East-Asian	JPT	Japanese in Toyko, Japan (JPT)
+Asian	East-Asian	CHS	Han Chinese South (CHS)
+Asian	East-Asian	CHD	Chinese in Denver, Colorado (CHD) (pilot 3 only)
+Asian	South-Asian	GIH	Gujarati Indian in Houston, TX (GIH)
+African	West-African	YRI	Yoruba in Ibadan, Nigeria (YRI)
+African	West-African	LWK	Luhya in Webuye, Kenya (LWK)
+African	West-African	MKK	Maasai in Kinyawa, Kenya (MKK)
+African	Afro-American	ASW	African Ancestry in Southwest US (ASW)
+American	North-American	MEX	Mexican Ancestry in Los Angeles, CA (MXL)
+American	North-American	PUR	Puerto Rican in Puerto Rico (PUR)
+American	South-American	CLM	Colombian in Medellin, Colombia (CLM)
+#Asian	East-Asian	CDX	Chinese Dai in Xishuangbanna (CDX)
+#Asian	East-Asian	KHV	Kinh in Ho Chi Minh City, Vietnam (KHV)
+#Asian	South-Asian	PJL	Punjabi in Lahore, Pakistan (PJL)
+#Asian	South-Asian	BEB	Bengali in Bangladesh (BEB)
+#Asian	South-Asian	STU	Sri Lankan Tamil in the UK (STU)
+#Asian	South-Asian	ITU	Indian Telegu in the UK (ITU)
+#African	West-African	GWD	Gambian in Western Division, The Gambia (GWD)
+#African	West-African	MSL	Mende in Sierra Leono (MSL)
+#African	West-African	ESN	Esan in Nigeria (ESN)
+#African	Afro-American	ACB	African Caribbean in Barbados (ACB)
+#American	South-American	PEL	Peruvian in Lima, Peru (PEL)
