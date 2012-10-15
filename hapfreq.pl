@@ -246,9 +246,10 @@ while(<IN>) {
 close(IN);
 
 my %general;
+my %initial;
 
 foreach my $pel (keys %view) {
-    
+
     my %freq;
 
     #######################
@@ -284,7 +285,7 @@ foreach my $pel (keys %view) {
             }
         }
     }    
-
+    
     ## TEST DATA FOR THIRD STEP
     #%freq = ( 'A;C;G;N;T;N' =>  {   'data'  =>  [ ['S1',2], ['S2',2] ] ,
     #                                'f'     =>  4
@@ -341,6 +342,21 @@ foreach my $pel (keys %view) {
             delete($freq{$orig});
         }
     }
+    
+    foreach my $h ( keys %freq ) {
+        foreach my $sbjct(keys %{ $freq{ $h }->{'data'} } ) {
+            $initial{ $h }->{'data'}->{ $sbjct }=$freq{ $h }->{'data'}->{ $sbjct };
+            $initial{ $h }->{'f'}+=$initial{ $h }->{'data'}->{ $sbjct };
+        }
+    }
+
+}
+
+%general = %initial;
+
+foreach my $pel (keys %view) {
+    
+    my %freq = %initial;
 
     #######################
     # FOURTH STEP: Count frequency for 2 or more heterozygous in the haplotype
@@ -352,7 +368,6 @@ foreach my $pel (keys %view) {
 
         foreach my $view_ar ( @{ $view{$pel}->{$vid} } ) {
             my ($hap, $sbjct) = @{ $view_ar };
-            
             my @haps = split(/\;/, $hap);
 
             my %tmp;
@@ -372,26 +387,36 @@ foreach my $pel (keys %view) {
                 }
             }
             my @alter = keys %tmp;
+
+            my @betteralter;
             if (scalar(@alter) == 0 ) {
-                $LOGGER->logwarn("Not found an aproximate haplotype for $hap");
+                $LOGGER->logwarn("Not found an aproximate haplotype for $hap. Trying to found all possibles...");
+                &recpossibleshet($hap,\@betteralter,0);
             }
             else {
-                
-                my @betteralter;
                 my $c = 0;
-                for my $x (sort { $freq{$b}->{'f'} <=> $freq{$a}->{'f'} } @alter) {
-                    push(@betteralter,$x) if ($c<2);
-                    $c++;
+                my $last_freq = 0;
+                for my $x (sort { (($freq{$b}) ? $freq{$b}->{'f'} : 0) <=> (($freq{$a}) ? $freq{$a}->{'f'} : 0) } @alter) {
+                    if ($c<1) {
+                        push(@betteralter,$x);
+                        my $f = $freq{$x}->{'f'}||0;
+                        if ($last_freq<$f) {
+                            $c++;
+                        }
+                        $last_freq = $f;
+                    }
                 }
-                
+                $betteralter[1] = join(';', &otherhap(\@haps,$betteralter[0]));
+            }
+
                 foreach my $balt (@betteralter) {
                     my $f = 2/scalar(@betteralter);
+#                    print ">>>>>>>>>>>>>>>>>>$f (".scalar(@betteralter).")\n";
                     $freq{$balt}->{'data'}->{$sbjct} = $f;
                     $freq{$balt}->{'f'}+=$f;
                     $LOGGER->debug("$pel:$sbjct:$balt=$f");
                 }
-            }
-        }        
+        } 
     }
 
     #######################
@@ -401,8 +426,9 @@ foreach my $pel (keys %view) {
     
     foreach my $h ( keys %freq ) {
         foreach my $sbjct(keys %{ $freq{ $h }->{'data'} } ) {
-            $general{ $h }->{'data'}->{ $sbjct }=$freq{ $h }->{'data'}->{ $sbjct };
-            $general{ $h }->{'f'}+=$general{ $h }->{'data'}->{ $sbjct };
+            my $aux = ($freq{ $h }->{'data'}->{ $sbjct }-($initial{ $h }->{'data'}->{$sbjct}||0));
+            $general{ $h }->{'data'}->{ $sbjct }+=$aux;
+            $general{ $h }->{'f'}+=$aux;
         }
     }
     
@@ -542,6 +568,27 @@ sub recpossibleshet {
         }
     }
 }
+
+sub otherhap {
+    my ($ar_haps, $h) = @_;
+    my @r;
+    my @h = split(';', $h);
+    for (my $i=0;$i<=$#{$ar_haps};$i++) {
+        if ($ar_haps->[$i] eq $h[$i]) {
+            push(@r, $ar_haps->[$i]);
+        }
+        else {
+            foreach my $eb (split(/\//, $ar_haps->[$i])) {
+                unless ($eb eq  $h[$i]) {
+                    push(@r, $eb);
+                    last;
+                }
+            }
+        }
+    }
+    return @r;
+}
+
 
 __DATA__
 European	European	CEU	Utah residents (CEPH) with Northern and Western European ancestry (CEU)
