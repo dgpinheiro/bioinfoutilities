@@ -352,11 +352,29 @@ foreach my $pel (keys %view) {
 
 }
 
-%general = %initial;
+# copy initial data to general
+foreach my $h (keys %initial) {
+    my $f = 0;
+    foreach my $s (keys %{$initial{$h}->{'data'}}) {
+        $general{$h}->{ 'data' }->{ $s } = $initial{ $h }->{'data'}->{ $s };
+        $f+=$initial{ $h }->{'data'}->{ $s };
+    }
+    $general{$h}->{ 'f' } = $f;
+}
+
 
 foreach my $pel (keys %view) {
-    
-    my %freq = %initial;
+
+    my %freq;
+    # copy initial data to freq
+    foreach my $h (keys %initial) {
+        my $f = 0;
+        foreach my $s (keys %{$initial{$h}->{'data'}}) {
+            $freq{$h}->{ 'data' }->{ $s } = $initial{ $h }->{'data'}->{ $s };
+            $f+=$initial{ $h }->{'data'}->{ $s };
+        }
+        $freq{$h}->{ 'f' } = $f;
+    }
 
     #######################
     # FOURTH STEP: Count frequency for 2 or more heterozygous in the haplotype
