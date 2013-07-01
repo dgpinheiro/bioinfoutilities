@@ -35,26 +35,15 @@
 
 =head1 NAME
 
-    repair-ends.pl - Repair sequence "ends" from paired-end experiments after filtering steps.
+    excludeFastqSeqs.pl - Exclude selected sequences from Fastq file.
 
 =head1 SYNOPSIS
     
-    # original files before filtering.: PEExp_1.fastq / PEExp_2.fastq
-    # files after filtering...........: PEExp_1_cleaned.fastq / PEExp_2_cleaned.fastq
-    # output paired-end files.........: PEExp_1_cleaned_paired.fastq / PEExp_2_cleaned_paired.fastq
-    # output single-end files.........: PEExp_cleaned_single.fastq
-
-    $ repair-ends.pl    -g1 PEExp_1.fastq -g2 PEExp_2.fastq \
-    > -i1 PEExp_1_cleaned.fastq -i2 PEExp_2_cleaned.fastq \
-    > -o1 PEExp_1_cleaned_paired.fastq -o2 PEExp_2_cleaned_paired.fastq -os PEExp_cleaned_single.fastq ;
-
 =head1 ABSTRACT
     
 =head1 DESCRIPTION
     
-    Script to pair the sequences of two ordered fastq files from paired-end 
-    experiments after filtering steps. The pairing is based on their original
-    files before filtering procedures.
+    Script to exclude the sequences with selected IDs from Fastq file.
 
 =head1 AUTHOR
 
