@@ -88,13 +88,15 @@ INIT {
 }
 
 
-my ($infile, $level, $outbase);
+my ($infile, $level, $outbase, $ethreep, $statsfile);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help"      => sub { &Usage(); },
             "i|infile=s"    => \$infile,
             "o|outbase=s"   => \$outbase,
-            "l|level=s"     => \$level
+            "l|level=s"     => \$level,
+            "e|extend3p=s"  => \$ethreep,
+            "s|statsfile=s" => \$statsfile
  ) or &Usage();
 
 if ($level) {
@@ -136,7 +138,14 @@ $out{'ncRNA'} =
   Bio::SeqIO->new( -file => '>' . $outbase . 'ncRNA.fa', -format => 'FASTA' );
 $out{'rRNA'} =
   Bio::SeqIO->new( -file => '>' . $outbase . 'rRNA.fa', -format => 'FASTA' );
-    
+$out{'tRNA'} =
+  Bio::SeqIO->new( -file => '>' . $outbase . 'tRNA.fa', -format => 'FASTA' );
+
+if ($ethreep) {
+    $out{'3p-'.$ethreep} =
+    Bio::SeqIO->new( -file => '>' . $outbase . '3p-'.$ethreep.'.fa', -format => 'FASTA' );
+}
+
 my $tmpdir = tempdir( 'emfgXXXX', DIR=>'./', CLEANUP => 1 );
 
 my %count = (
@@ -151,11 +160,12 @@ my %count = (
     'byGroup'     => {}
 );
 
+my %threepext;
 while ( my $seqobj = $in->next_seq()) {
     
-    my ($group) = ($1||$2) if ($seqobj->description()=~/linkage group ([^, ]+)|(mitochondrion)/);
+    my ($group) = ($1||$2||$3) if ($seqobj->description()=~/linkage group ([^, ]+)|(mitochondrion)|(GroupUn\d+)/);
     
-    $LOGGER->logdie("Not found linkage group")  unless ($group);
+    $LOGGER->logdie("Not found linkage group: ".$seqobj->description())  unless ($group);
 
     @{ $count{'byGroup'}->{$group} }{ 'gene', 'mRNA', '5pCDS3pmRNA', '5pCDSmRNA', 'CDS3pmRNA', 'CDSmRNA', 'ncRNA' } = (0, 0, {'all'=>0, 'small'=>0}, {'all'=>0, 'small'=>0}, {'all'=>0, 'small'=>0}, {'all'=>0, 'small'=>0}, 0) unless (exists $count{'byGroup'}->{$group});
     
@@ -187,6 +197,29 @@ while ( my $seqobj = $in->next_seq()) {
                         $beebase = $1;
                     }
                 }
+                if ($ethreep) {
+                    my ($ts, $te) = ($feature->start(), $feature->end());
+                    if ($feature->strand()  == 1) {
+                        if ( ($te+1+$ethreep) <= $seqobj->length() ) {
+                            $threepext{$transcript_id} = $seqobj->trunc($te+1, $te+1+$ethreep);
+                        }
+                        else {
+                            if ( $te < $seqobj->length() ) {
+                                $threepext{$transcript_id} = $seqobj->trunc($te+1, $seqobj->length());
+                            }
+                        }
+                    }
+                    else {
+                        if ($ts >= $ethreep) {
+                            $threepext{$transcript_id} = $seqobj->trunc($ts-1-$ethreep, $ts-1)->revcom();
+                        }
+                        else {
+                            if ($ts>1) {
+                                $threepext{$transcript_id} = $seqobj->trunc(1, $ts-1)->revcom();
+                            }
+                        }
+                    }                    
+                }                
                 my $rna_seq = $feature->spliced_seq();
                 print $fh $geneid,"\t",$beebase,"\t",$feature->primary_tag(),"\t",$transcript_id,"\t",$rna_seq->seq(),"\t",$feature->strand(),"\t",join(';', @db_xref),"\n";
             }
@@ -298,9 +331,15 @@ while ( my $seqobj = $in->next_seq()) {
     }
     close(FT);
     
+    open(DBG, ">>", "/tmp/MRNA.txt");
+    foreach my $k (keys %mRNA) {
+        print DBG $k,"\t",$group,"\n";
+    }
+    close(DBG);
+    
     $count{'gene'}+=scalar(keys %gene);
     $count{'byGroup'}->{$group}->{'gene'}+=scalar(keys %gene);
-    $count{'mRNA'}+=scalar(keys %mRNA);       
+    $count{'mRNA'}+=scalar(keys %mRNA);
     $count{'byGroup'}->{$group}->{'mRNA'}+=scalar(keys %mRNA);
     $count{'ncRNA'}+=scalar(keys %ncRNA);
     $count{'byGroup'}->{$group}->{'ncRNA'}+=scalar(keys %ncRNA);
@@ -332,7 +371,23 @@ while ( my $seqobj = $in->next_seq()) {
                         
                         $valid{'3p'}->{ $CDS_acc } = $cdsobj;
                     }
-                     
+                    else {
+                        if ($ethreep) {
+                            if ($RNA{$RNA_acc}->{'cds'}->{$CDS_acc}->{'end'}==$seqobj->length()) {
+                                if (exists $threepext{$RNA_acc}) {
+                                    $valid{'3p-'.$ethreep}->{ $CDS_acc } = $threepext{$RNA_acc};
+                                    $valid{'3p-'.$ethreep}->{ $CDS_acc }->display_id($RNA_acc.'|3p-'.$ethreep.'|'.$CDS_acc);
+                                    $valid{'3p-'.$ethreep}->{ $CDS_acc }->description( "GeneID:$RNA{$RNA_acc}->{'geneid'}|BEEBASE:$RNA{$RNA_acc}->{'beebase'}" );
+                                }
+                                else {
+                                    $LOGGER->logdie("Not found 3p extension for $RNA_acc");
+                                }
+                            }
+                            else {
+                                $LOGGER->logdie("You couldn't be here.");
+                            }
+                        }                            
+                    }
                     my $cdsobj = $seqobj->trunc($RNA{$RNA_acc}->{'cds'}->{$CDS_acc}->{'start'}, $RNA{$RNA_acc}->{'cds'}->{$CDS_acc}->{'end'});
                     $cdsobj->display_id( $cdsobj->display_id().'|CDS'.'|'.$CDS_acc );
                     $valid{'CDS'}->{ $CDS_acc } = $cdsobj;
@@ -398,7 +453,7 @@ while ( my $seqobj = $in->next_seq()) {
 
         foreach my $type (keys %valid) {
                 foreach my $s (keys %{$valid{$type}}) {
-                    print STDERR "$type" unless ($out{$type});
+                    $LOGGER->logdie("Not found file for this type: $type") unless ($out{$type});
                     $out{$type}->write_seq( $valid{$type}->{$s} );
                 } 
         }
@@ -406,8 +461,9 @@ while ( my $seqobj = $in->next_seq()) {
     
 }
 
+open(STAT, ">", $statsfile) or $LOGGER->logwarn($!);
 
-print STDERR "
+print STAT "
 *** GENERAL REPORT ***
 
 Nº of groups scanned....: $count{'chromosome'}
@@ -424,11 +480,11 @@ Nº of mRNAs found.......: $count{'mRNA'}
     ncRNA...............: $count{'ncRNA'}
 ";
 
-print STDERR "
+print STAT "
 *** REPORT BY GROUP ***
 ";
 foreach my $group (sort {$a cmp $b} keys %{$count{'byGroup'}} ) {
-    print STDERR "
+    print STAT "
 * $group
 
     Nº of genes found.......: $count{'byGroup'}->{$group}->{'gene'}
@@ -445,7 +501,7 @@ foreach my $group (sort {$a cmp $b} keys %{$count{'byGroup'}} ) {
 ";
 
 }
-
+close(STAT);
 
 
 # Subroutines
@@ -466,6 +522,7 @@ Argument(s)
         -l      --level     Log level [Default: FATAL]
         -i      --infile    Input file path and name
         -o      --outbase   Output path and base name [Default: ./out]
+        -s      --statsfile Statistics file
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
