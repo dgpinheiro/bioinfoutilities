@@ -116,48 +116,43 @@ my $sequence_count = 0;
 	my $fl = <IN>;
 	chomp($fl);
 	my ($seqid, $seq, $qualid, $qual) = split($sep, $fl);
-    if (($qualid)&&($qual)) {
-    	@lastqual = split(//, $qual);
-    }        
+	@lastqual = split(//, $qual);
 	$lastseq = $seq;
-	$count = 0;
+    if ($seqid=~/_x(\d+)/) {
+        $count+=$1;
+    }
+    else {
+    	$count = 0;
+    }        
 }
 
 while(<IN>) {
 	chomp;
 	my ($seqid, $seq, $qualid, $qual) = split($sep, $_);
-	if ($seqid=~/_x(\d+)$/) {
-        $count+=$1;
-    }
-    else {
-        $count++;
-    }        
-
 	if ($lastseq ne $seq) {
 		
 		$sequence_count++;
-        if (($qualid)&&($qual)) {
-		    &print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count);
-    		@lastqual = split(//, $qual);
-        }
-        else {
-            &print_seq(\*OUT, $sequence_count, $lastseq, undef, $count);
-        }        
-	    $lastseq = $seq;
-	    $count = 0;
+		&print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count);
+
+		@lastqual = split(//, $qual);
+		$lastseq = $seq;
+		$count = 0;
 	}
 	else {
-        if (($qualid)&&($qual)) {
-		    &update_qual(\@lastqual, $qual);
-        }        
+		&update_qual(\@lastqual, $qual);
 	}
-	    $line++;
+    if ($seqid=~/_x(\d+)/) {
+    	$count+=$1;
+    }
+    else {
+        $count++;
+    }
+	$line++;
     	if ($line % 10000 == 0) {
         	print STDERR "Records: $line                                                         \r";
 	}
 }
 
-$count++;
 $sequence_count++;
 &print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count);
 
@@ -215,12 +210,7 @@ sub print_seq {
 	#my $base36 = $to->($sequence_code);
 	my $base36 = $sequence_code;
 	my $sequence_name = (( '?' x (3-length($run_prefix))).$run_prefix).'_'.(( 0 x (6-length($base36))).$base36).'_x'.$c;
-    if (($ar_qual)&&($c)) {
-    	print $fhr '@',$sequence_name,"\n",$s,"\n",'+',$sequence_name,"\n",join('', @{$ar_qual}),"\n";
-    }
-    else {
-        print $fhr '>',$sequence_name,"\n",$s,"\n";
-    }
+	print $fhr '@',$sequence_name,"\n",$s,"\n",'+',$sequence_name,"\n",join('', @{$ar_qual}),"\n";
 }
 
 # Change the base representation of a non-negative integer
