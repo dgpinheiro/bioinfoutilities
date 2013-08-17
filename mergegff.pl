@@ -292,7 +292,7 @@ foreach my $chr (keys %chromosome) {
 
     if (( ! -z $filename1)&&( ! -z $filename2)) {
 #        print "RUNNING BEDTools -a $filename1 -b $filename2 \n";
-        `/usr/local/bioinfo/BEDTools-Version-2.16.2/bin/intersectBed -bed -wo -s -a $filename1 -b $filename2 > $chrdir/MERGE.txt`;
+        `intersectBed -bed -wo -s -a $filename1 -b $filename2 > $chrdir/MERGE.txt`;
         my %merge;
 
         open(MERGE, "<", "$chrdir/MERGE.txt") or $LOGGER->logdie($!);
@@ -425,7 +425,9 @@ foreach my $chr (keys %chromosome) {
                                                 $result{$geneA}->{$geneB} = 0 unless (exists $result{$geneA}->{$geneB});
                                                 $result{$geneB}->{$geneA} = 0 unless (exists $result{$geneB}->{$geneA});
                                                 if (($hit->query_length() == $hit->length()) &&
-                                                    ($hsp[0]->percent_identity() == 100)) {
+                                                    ($hsp[0]->percent_identity() == 100) &&
+                                                    ($hsp[0]->length('hit') == $hit->query_length())
+                                                ) { # exactly equal sequences
 
                                                     $RNAequal{$sA}->{$sB} = undef;
                                                     $RNAequal{$sB}->{$sA} = undef;
@@ -444,7 +446,9 @@ foreach my $chr (keys %chromosome) {
                                                                     }
                                                 
                                                                     if (($aahit->query_length() == $aahit->length()) &&
-                                                                        ($aahsp[0]->percent_identity() == 100)) {
+                                                                        ($aahsp[0]->percent_identity() == 100) &&
+                                                                        ($hsp[0]->length('hit') == $hit->query_length())
+                                                                    ) {
                                                                         $CDSequal{$sA}->{$sB} = undef;
                                                                         $CDSequal{$sB}->{$sA} = undef;
                                                                     }
@@ -513,7 +517,7 @@ foreach my $chr (keys %chromosome) {
                 print GFFOUT $gffio1->gff_string($feat),"\n";
                 
                 foreach my $g (@{ $groupgene{ $gn } }) {
-                    &printall(\*GFFOUT, $gene{$chr}, \%feature, $g, $gffio1, {}, {mRNA=>{'Parent'=>$gn} },1,\%RNAequal,\%CDSequal);
+                    &printall(\*GFFOUT, $gene{$chr}, \%feature, $g, $gffio1, {}, { mRNA=>{'Parent'=>$gn} },1,\%RNAequal,\%CDSequal);
                 }
                 
             }
@@ -602,8 +606,10 @@ sub recitem {
 
 
 sub printall {
+
     my ($FH, $hr_chr_gene, $hr_feature, $geneid, $gffio, $hr_RNA, $hr_extra, $nogene, $hr_RNAequal, $hr_CDSequal) = @_;
     
+
     unless ($nogene) {
         if (($hr_extra)&&($hr_extra->{'gene'})) {
             foreach my $k (keys %{ $hr_extra->{'gene'} }) {
@@ -632,11 +638,16 @@ sub printall {
             # já foi mesclado anteriormente
             $nomrna = 1 if ($hr_RNAequal->{$mRNAid}->{$Requal});
             
-            $hr_extra->{'mRNA'} = { 'Note' => ((($hr_extra)&&($hr_extra->{'mRNA'})&&($hr_extra->{'mRNA'}->{'Note'})) ? $hr_extra->{'mRNA'}->{'Note'}.',' : '').'Identical_RNA_from:'.$Requal};
+            if (($hr_extra)&&($hr_extra->{'mRNA'})&&($hr_extra->{'mRNA'}->{'Note'})) {
+                $hr_extra->{'mRNA'}->{'Note'}||='';
+                $hr_extra->{'mRNA'}->{'Note'}.= $hr_extra->{'mRNA'}->{'Note'}.',';
+            }
+            $hr_extra->{'mRNA'}->{'Note'}.='Identical_RNA_from:'.$Requal;
 
             $mRNAfeat->remove_tag('ID');
-            $newmRNAid = join('/',$mRNAid,$Requal);
+            $newmRNAid = join('/',(sort ($mRNAid,$Requal))); # NEW mRNA id
             $mRNAfeat->add_tag_value('ID', $newmRNAid);
+            
             $hr_RNAequal->{$mRNAid}->{$Requal} = 1;
             $hr_RNAequal->{$Requal}->{$mRNAid} = 1;
         }
@@ -645,7 +656,11 @@ sub printall {
             $LOGGER->logdie("Weird! More than one CDS equal ($mRNAid): ".join(';', keys %{ $hr_CDSequal->{$mRNAid} })) if ( scalar(keys %{ $hr_CDSequal->{$mRNAid} }) > 1 );
             my ($Requal) = keys %{ $hr_CDSequal->{$mRNAid} };
             
-            $hr_extra->{'mRNA'} = { 'Note' => ((($hr_extra)&&($hr_extra->{'mRNA'})&&($hr_extra->{'mRNA'}->{'Note'})) ? $hr_extra->{'mRNA'}->{'Note'}.',' : '').'Identical_CDS_from:'.$Requal};
+            if (($hr_extra)&&($hr_extra->{'mRNA'})&&($hr_extra->{'mRNA'}->{'Note'})) {
+                $hr_extra->{'mRNA'}->{'Note'}||='';
+                $hr_extra->{'mRNA'}->{'Note'}.= $hr_extra->{'mRNA'}->{'Note'}.',';
+            }
+            $hr_extra->{'mRNA'}->{'Note'}.='Identical_CDS_from:'.$Requal;
             
             # já foi mesclado anteriormente
             $nocds = 1 if ($hr_CDSequal->{$mRNAid}->{$Requal});
@@ -683,7 +698,7 @@ sub printall {
             $exonfeat->add_tag_value('Parent', $newmRNAid);
             unless ($nomrna) {
                 print { $FH } $gffio->gff_string( $exonfeat ),"\n";
-            }                
+            }
         }
         
         $hr_RNA->{$mRNAid}->{'gene'} = $geneid;
