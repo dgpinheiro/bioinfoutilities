@@ -32,7 +32,7 @@ fi
 bn=`basename ${infile} .fa`;
 bngff=`basename \`basename ${gffile} .gff \` .gff3`
 
-pita_prediction.pl -utr ${infile} -mir ${maturefile} -prefix ${prefix} -l 6-8 -gu '6;0,7;1,8;1' -m '6;0,7;0,8;1' > pita_output.txt 2>&1
+pita_prediction.pl -utr ${infile} -mir ${maturefile} -prefix ${prefix} -l 6-8 -gu '6;0,7;1,8;1' -m '6;0,7;0,8;1' > ${prefix}_pita_output.txt 2>&1
 
 ./selectPITA.pl -i ${prefix}_pita_results_targets.tab -t -10 > Targets_${bn}_s-10.tmp
 
