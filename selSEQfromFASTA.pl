@@ -83,13 +83,14 @@ INIT {
 use Bio::SeqIO;
 
 
-my ($level, $infile, $idparam);
+my ($level, $infile, $idparam, $preserve);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|id=s"=>\$idparam,
-            "f|fasta=s"=>\$infile
+            "f|fasta=s"=>\$infile,
+            "p|preserve"=>\$preserve
     ) or &Usage();
 
 
@@ -142,6 +143,9 @@ while(my $seq=$seqin->next_seq() ) {
     foreach my $ID (keys %SELECTION ) {
         my $qID = quotemeta($ID);
         if ($seq->display_id() =~ /$qID/) {
+            if ($preserve) {
+                $seq->display_id($qID);
+            }
             $seqout->write_seq( $seq );
             $SELECTION{$ID}++;
         }
@@ -172,6 +176,7 @@ Argument(s)
         -l      --level     Log level [Default: FATAL]
         -f      --fasta     Input fasta file or <STDIN>
         -i      --id        ID list/file 
+        -p      --preserve  Preserve ID 
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
