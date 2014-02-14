@@ -138,6 +138,13 @@ while(<IN>) {
     @line{@header} = split(/\t/, $_); 
     
     if ((exists $valid{ $line{'sample_1'} })&&(exists $valid{ $line{'sample_2'} } )) {
+
+        $line{'value_1'}+=1;
+        $line{'value_2'}+=1;
+        
+        my $log2fc = sprintf("%.6f", (log( $line{'value_2'}/$line{'value_1'} )/log(2)));
+        $line{'log2(fold_change)'} = $log2fc;
+        
         push(@data, \%line);
         push(@pvalue, [$line{'status'}, $line{'p_value'}]);
     }        
