@@ -143,7 +143,7 @@ while(my $guidep1_seqid = <ONEGUIDE>) {
         my $inp1_qualid = <ONEIN>;
         my $inp1_qual = <ONEIN>;
         
-        if ($inp2_seqid eq $guidep2_seqid) {
+        if (($inp2_seqid)&&($inp2_seqid eq $guidep2_seqid)) {
             my $inp2_seq = <TWOIN>;
             my $inp2_qualid = <TWOIN>;
             my $inp2_qual = <TWOIN>;
