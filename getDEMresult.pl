@@ -185,7 +185,7 @@ foreach my $mirna (keys %data) {
         
         my @winflat = `winflat -xvalue $v1 -yvalue $v2 -diff $t1 $t2`;
         my $pvalue = 0;
-        if ( $v2 < $v1 ) {
+        if ( $vn2 < $vn1 ) {
             ($pvalue) = $winflat[0] =~ /\) = (\S+)/;
         }
         else {
@@ -239,13 +239,7 @@ for (a in 1:length(analysis.final.tmp)) {
    pvalue.df[, analysis.final.tmp[a] ] <<- p.adjust(pvalue.df[, analysis[a] ], method="fdr")
 }        
 ');
-&R::eval('
-    if ( length(analysis.final.tmp) > 1) {
-        pvalue.df[, analysis.final] <<- t(apply(pvalue.df[, analysis.final.tmp], 1, function(x){ return(as.numeric(p.adjust(x, method="fdr"))) } ))
-    } else {
-        pvalue.df[, analysis.final] <<- pvalue.df[, analysis.final.tmp]
-    }    
-    ');
+&R::eval('pvalue.df[, analysis.final] <<- t(apply(pvalue.df[, analysis.final.tmp], 1, function(x){ return(as.numeric(p.adjust(x, method="fdr"))) } ))');
 #&R::eval('pvalue.df[, setdiff(colnames(pvalue.df), c(analysis.final.tmp, "mirna"))] <- round(pvalue.df[, setdiff(colnames(pvalue.df), c(analysis.final.tmp, "mirna"))],3)');
 
 &R::eval('write.table(file="'."$tmpdir/Result.txt".'", pvalue.df[, setdiff(colnames(pvalue.df), analysis.final.tmp)], sep="\t", quote=FALSE, row.names=FALSE)');
