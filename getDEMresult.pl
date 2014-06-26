@@ -70,6 +70,11 @@ use Getopt::Long;
 
 use Math::Combinatorics;
 
+use R;
+
+use File::Basename;
+
+
 use vars qw/$LOGGER/;
 
 INIT {
@@ -156,6 +161,12 @@ my @DE_fold_header = map { $_->[0].'x'.$_->[1].'.fold.change' } @DE;
 my @DE_pvalue = map { $_->[0].'x'.$_->[1].'.pvalue' } @DE;
 my @DE_qvalue = map { $_->[0].'x'.$_->[1].'.qvalue' } @DE;
 
+&R::initR("--silent","--no-save");
+&R::library("RSPerl");
+&R::eval('trap <<- capture.output( suppressMessages( library("Rmpfr") ) )');
+&R::eval('AC.pvalue <<- function(x,y,n1,n2) {
+        return ( as.numeric(( (n2/n1)^y ) * (  gamma( as((x+y)+1,"mpfr") ) / ( gamma( as(x+1,"mpfr") )*gamma( as(y+1, "mpfr") )* (1+(n2/n1))^(x+y+1)      )  ) ) )
+            }');
 
 my @tmp;
 my %mirnap;
@@ -183,20 +194,22 @@ foreach my $mirna (keys %data) {
 
         push(@foldchange, sprintf("%.2f", &log2( ($vn1/$vn2) )));
         
-        my @winflat = `winflat -xvalue $v1 -yvalue $v2 -diff $t1 $t2`;
-        my $pvalue = 0;
-        if ( $vn2 < $vn1 ) {
-            ($pvalue) = $winflat[0] =~ /\) = (\S+)/;
-        }
-        else {
-            ($pvalue) = $winflat[1] =~ /\) = (\S+)/;
-        }
-
-        push(@pvalue, sprintf("%.3f", $pvalue) );
-        
+        #my @winflat = `winflat -xvalue $v1 -yvalue $v2 -diff $t1 $t2`;
+        #my $pvalue = 0;
+        #if ( $vn2 < $vn1 ) {
+        #    ($pvalue) = $winflat[0] =~ /\) = (\S+)/;
+        #}
+        #else {
+        #    ($pvalue) = $winflat[1] =~ /\) = (\S+)/;
+        #}
+        my $pvalue = &R::eval("AC.pvalue($v1, $v2, $t1, $t2)");
+        $LOGGER->logdie("Problem calculating p-value ($pvalue): $v1, $v2, $t1, $t2") if ((!defined $pvalue)||( $pvalue!~/^\d+(\.\d+)?(e[+-]\d+)?$/ ));
+        $LOGGER->logdie("Error on p-value ($pvalue) not possible: $v1, $v2, $t1, $t2") if (($pvalue<0)||($pvalue>1));
+        #push(@pvalue, sprintf("%.3f", $pvalue) );
+        push(@pvalue, $pvalue);
         $mirnap{ $mirna }->{$cmp_ar->[0].'x'.$cmp_ar->[1].'.pvalue'} = $pvalue;
     }
-    push(@tmp, [$mirna, @{ $data{$mirna} }{@sample}, @{ $data{$mirna} }{ map { $_.'.norm' } @sample} , @foldchange, @pvalue]);
+    push(@tmp, [$mirna, @{ $data{$mirna} }{@sample}, @{ $data{$mirna} }{ map { $_.'.norm' } @sample} , @foldchange, map { sprintf("%.3f", $_) } @pvalue]);
 }
 
 #print join("\t", '#miRNA', @sample, @DE_fold_header, @DE_pvalue),"\n";
@@ -210,12 +223,6 @@ foreach my $mirna (keys %data) {
 use File::Temp qw/ tempfile tempdir /;
 
 
-use R;
-
-use File::Basename;
-
-&R::initR("--silent","--no-save");
-&R::library("RSPerl");
 
 $|=1;
 
@@ -239,7 +246,14 @@ for (a in 1:length(analysis.final.tmp)) {
    pvalue.df[, analysis.final.tmp[a] ] <<- p.adjust(pvalue.df[, analysis[a] ], method="fdr")
 }        
 ');
-&R::eval('pvalue.df[, analysis.final] <<- t(apply(pvalue.df[, analysis.final.tmp], 1, function(x){ return(as.numeric(p.adjust(x, method="fdr"))) } ))');
+&R::eval('pvalue.df.tmp <<- as.data.frame(pvalue.df[, analysis.final.tmp])
+        ');
+&R::eval(' if (length(analysis.final.tmp)>1) {
+            pvalue.df[, analysis.final] <<- t(apply(pvalue.df.tmp, 1, function(x){ return(as.numeric(p.adjust(x, method="fdr"))) } ))
+           } else {
+            pvalue.df[, analysis.final] <<- apply(pvalue.df.tmp, 1, function(x){ return(as.numeric(p.adjust(x, method="fdr"))) } )
+           }
+    ');
 #&R::eval('pvalue.df[, setdiff(colnames(pvalue.df), c(analysis.final.tmp, "mirna"))] <- round(pvalue.df[, setdiff(colnames(pvalue.df), c(analysis.final.tmp, "mirna"))],3)');
 
 &R::eval('write.table(file="'."$tmpdir/Result.txt".'", pvalue.df[, setdiff(colnames(pvalue.df), analysis.final.tmp)], sep="\t", quote=FALSE, row.names=FALSE)');
@@ -265,7 +279,8 @@ print join("\t", '#miRNA', @sample, (map { $_.'.norm' } @sample), @DE_fold_heade
 
 foreach my $art (@tmp) {
     my $mirna = $art->[0];
-    print join("\t", @{$art}, map { sprintf("%.3f", $_) } @{ $mirnaq{$mirna} }{@DE_qvalue}),"\n";
+    #print join("\t", @{$art}, map { sprintf("%.3f", $_) } @{ $mirnaq{$mirna} }{@DE_qvalue}),"\n";
+    print join("\t", @{$art}, map { sprintf("%.3f",$_) } @{ $mirnaq{$mirna} }{@DE_qvalue}),"\n";
 }
 
 
