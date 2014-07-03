@@ -158,6 +158,7 @@ while(<IN>){
     
     push(@order,$ID);
 
+    sleep(5);
 } 
 
 close(IN); 
