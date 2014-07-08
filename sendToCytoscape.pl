@@ -262,7 +262,7 @@ sendToCytoscape <<- function(networkName="network name", graphFile, validFile) {
 
     setNodeSizeRule(gDCW, "betweenness", c(min(betAll.norm), mean(betAll.norm), max(betAll.norm)), c(50, 65, 75, 85, 100), mode = "interpolate")
 
-    setEdgeColorRule(gDCW, "weight", c(min(as.numeric(dataSet.ext$V3)), mean(as.numeric(dataSet.ext$V3)), max(as.numeric(dataSet.ext$V3))), c("#FFFF00", "#00FFFF", "#00FF7F", "#228B22", "#006400"), mode="interpolate")
+    setEdgeColorRule(gDCW, "weight", c(min(as.numeric(dataSet.ext$V3)), mean(as.numeric(dataSet.ext$V3)), max(as.numeric(dataSet.ext$V3))), c("#CCFFFF", "#00FFFF", "#00FF7F", "#228B22", "#006400"), mode="interpolate")
     
     for (node in names(statusAll[which(statusAll=="N")])) { 
         setNodeLabelOpacityDirect (gDCW, node, 90) 
