@@ -73,15 +73,21 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-my ($outfile, $infile, $sep, $run_prefix);
+my ($outfile, $infile, $sep, $run_prefix, $ndup, $logfile);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help"  => sub { &Usage(); },
             "o|outputfile=s"=> \$outfile,
             "i|inputfile=s"=> \$infile,
             "s|separator=s"=> \$sep,
-	    "p|prefix=s"=>\$run_prefix
+	        "p|prefix=s"=>\$run_prefix,
+            "l|logfile=s"=>\$logfile,
+            "n|n=i"=>\$ndup
 ) or &Usage();
+
+$ndup||=0;
+
+die "Execution number cannot be more than 9" if ($ndup > 9);
 
 $sep||="\t";
 
@@ -112,18 +118,26 @@ my $line = 0;
 
 my $sequence_count = 0;
 
+my @log;
 {
 	my $fl = <IN>;
 	chomp($fl);
 	my ($seqid, $seq, $qualid, $qual) = split($sep, $fl);
 	@lastqual = split(//, $qual);
 	$lastseq = $seq;
+    push(@log, $seqid);
     if ($seqid=~/_x(\d+)/) {
         $count+=$1;
     }
     else {
-    	$count = 0;
+    	$count = 1;
     }        
+}
+
+my $logfh;
+if ($logfile) {
+    open(LOG, ">", $logfile) or die "Cannot open log file: $!";
+    $logfh=\*LOG;
 }
 
 while(<IN>) {
@@ -132,7 +146,7 @@ while(<IN>) {
 	if ($lastseq ne $seq) {
 		
 		$sequence_count++;
-		&print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count);
+		&print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count, \@log, $logfh);
 
 		@lastqual = split(//, $qual);
 		$lastseq = $seq;
@@ -141,6 +155,7 @@ while(<IN>) {
 	else {
 		&update_qual(\@lastqual, $qual);
 	}
+    push(@log, $seqid);
     if ($seqid=~/_x(\d+)/) {
     	$count+=$1;
     }
@@ -154,7 +169,7 @@ while(<IN>) {
 }
 
 $sequence_count++;
-&print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count);
+&print_seq(\*OUT, $sequence_count, $lastseq, \@lastqual, $count, \@log, $logfh);
 
 $line++;
 print STDERR "Records: $line                                                         \n";
@@ -162,6 +177,10 @@ print STDERR "Records: $line                                                    
 close(OUT);
 
 close(IN);
+
+if ($logfile) {
+    close(LOG);
+}
 
 # Subroutines
 
@@ -186,7 +205,11 @@ Argument(s)
 
         -s      --separator     Separator (default: TAB)
 	
-	-p	--prefix	Prefix of sequence ids (three letters)
+	    -p	    --prefix	    Prefix of sequence ids (three letters) [Default: SEQ]
+
+        -n      --ndup          Number of execution [Default: 0]
+
+        -l      --logfile       LOG file
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
@@ -206,11 +229,18 @@ sub update_qual {
 }
 
 sub print_seq {
-	my ($fhr, $sequence_code, $s, $ar_qual, $c) = @_;
+	my ($fhr, $sequence_code, $s, $ar_qual, $c, $ar_log, $logfh) = @_;
 	#my $base36 = $to->($sequence_code);
 	my $base36 = $sequence_code;
-	my $sequence_name = (( '?' x (3-length($run_prefix))).$run_prefix).'_'.(( 0 x (6-length($base36))).$base36).'_x'.$c;
+	my $sequence_name = (( '?' x (3-length($run_prefix))).$run_prefix).'_'.$ndup.(( 0 x (9-length($base36))).$base36).'_x'.$c;
 	print $fhr '@',$sequence_name,"\n",$s,"\n",'+',$sequence_name,"\n",join('', @{$ar_qual}),"\n";
+    if ($logfh) {
+        foreach my $logseq (@{ $ar_log }) {
+            $logseq=~s/^@//;
+            print $logfh $logseq,"\t",$sequence_name,"\n";
+        }            
+    }        
+    @{$ar_log} = ();
 }
 
 # Change the base representation of a non-negative integer
