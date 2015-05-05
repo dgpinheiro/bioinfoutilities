@@ -68,6 +68,12 @@ use warnings;
 use Readonly;
 use Getopt::Long;
 
+use FileHandle;
+use POSIX 'isatty';
+use File::Basename;
+
+
+
 use vars qw/$LOGGER/;
 
 INIT {
@@ -78,7 +84,7 @@ INIT {
 
 my ($level, $infile);
 
-Usage("Too few arguments") if $#ARGV < 0;
+#Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|infile=s"=> \$infile
@@ -99,12 +105,25 @@ if ($level) {
     Log::Log4perl->easy_init($LEVEL{$level});
 }
 
-$LOGGER->logdie("Missing input file") unless ($infile);
-$LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
+my $fh;
+
+if ($infile) {
+
+    $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
+
+    $fh = FileHandle->new;
+    $fh->open("<$infile");
+
+} else {
+    unless (isatty(*STDIN)) {
+        $fh = \*STDIN;
+    } else {
+        $LOGGER->logdie("Missing input file or STDIN data");
+    }
+}
 
 my $diamond_version = 'v0.7.10.59';
 
-open(IN, "<", $infile) or $LOGGER->logdie($!);
 
 my %query_length;
 my %hit_length;
@@ -115,7 +134,7 @@ my $hsp_num = 0;
 my %hit_num;
 my %subjct;
 my %query;
-while(<IN>) {
+while(<$fh>) {
     chomp;
  
     next if ($_ =~ /^@/);
@@ -297,7 +316,8 @@ while(<IN>) {
     $query{ $qname } = undef;
 
 }
-
+$fh->close();
+$fh = undef;
 
 printf("<?xml version=\"1.0\"?>\n");
 printf("<BlastOutput>\n");
