@@ -121,6 +121,7 @@ use Cwd;
 
 &R::eval('suppressMessages(library(package="GenomicRanges"))');
 &R::eval('suppressMessages(library(package="ggbio"))');
+&R::eval('suppressMessages(library(package="scales"))');
 
 unless (-e "$gfile.RData") {
     my %glength;
@@ -154,9 +155,13 @@ my %ref;
 open(IN, "<", $infile) or $LOGGER->logdie($!);
 while(<IN>) {
     chomp;
-    my (@f) = split(/\t/, $_);
     my ($chr, $start, $end, $peakname, $score, $strand) = split(/\t/, $_);
-    $input{ $chr }->{basename($peakname)} = {'start' => $start, 'end'=> $end, 'score'=>$score, 'strand'=>(($strand eq ".") ? "*" : $strand)};
+    my ($region) = $peakname=~/^([^\/]+)/;
+    $LOGGER->logdie("Missing region ($peakname)") unless ($region);
+    if ($region ne 'promoter') {
+        $region= 'other';
+    }
+    $input{ $chr }->{basename($peakname)} = {'start' => $start, 'end'=> $end, 'score'=>$score, 'strand'=>(($strand eq ".") ? "*" : $strand), 'region'=>$region};
     $ref{$chr} = undef;
 }
 close(IN);
@@ -168,13 +173,19 @@ close(IN);
 
 my @refs = sort { &compn($a, $b) } keys %ref;
 
+#&R::eval(
+#        'grref <<- GRanges(seqnames = Rle(as.character(seqnames(gr[c('.join(', ', map { '"'.$_.'"' }  @refs).')]))),
+#                               ranges = ranges( gr[c('.join(', ', map { '"'.$_.'"' }  @refs).')] ),
+#                                                      '.((scalar(@refs)) ? 'chrnames = as.factor(c('.join(', ', map { '"'.$_.'"' }  @refs).'))' : 'chrnames = as.factor(as.character(seqnames(gr[c('.join(', ', map { '"'.$_.'"' }  @refs).')])))' ).'
+#                                                                                  )'
+#                                                                                      );
+                                                                                      
 &R::eval(
-        'grref <<- GRanges(seqnames = Rle(as.character(seqnames(gr[c('.join(', ', map { '"'.$_.'"' }  @refs).')]))),
-                               ranges = ranges( gr[c('.join(', ', map { '"'.$_.'"' }  @refs).')] ),
-                                                      '.((scalar(@refs)) ? 'chrnames = as.factor(c('.join(', ', map { '"'.$_.'"' }  @refs).'))' : 'chrnames = as.factor(as.character(seqnames(gr[c('.join(', ', map { '"'.$_.'"' }  @refs).')])))' ).'
-                                                                                  )'
-                                                                                      );
-
+        'grref <<- GRanges(seqnames = Rle( names(gr[grep("^GroupUn", names(gr),invert=TRUE)]) ),
+                           ranges = ranges(gr[grep("^GroupUn", names(gr),invert=TRUE)])
+                                                                                  )');
+&R::eval('isCircular(grref) <- rep(FALSE, length(names(grref)))');                                                                              
+&R::eval('isCircular(grref)[which(names(isCircular(grref))=="MT")] <- TRUE');                                                                              
 
 &R::eval('seqlengths(grref)[names(seqlengths(grref))] <<- seqlengths(gr)[names(seqlengths(grref))]');
 
@@ -187,6 +198,7 @@ foreach my $chr (@refs) {
         push(@{ $result{'end'} }, $input{$chr}->{$peakname}->{'end'} );
         push(@{ $result{'strand'} }, $input{$chr}->{$peakname}->{'strand'} );
         push(@{ $result{'score'} }, $input{$chr}->{$peakname}->{'score'} );
+        push(@{ $result{'region'} }, $input{$chr}->{$peakname}->{'region'} );
         push(@{ $result{'ID'} }, $peakname);
 #        print ">>>>".$input{$chr}->{$peakname}->{'score'}."\n";
 #        print ">>>>".$input{$chr}->{$peakname}->{'strand'}."\n";
@@ -201,7 +213,9 @@ close(IN);
                             ranges = IRanges(c('.join(', ', @{ $result{'start'} }).'), end = c('.join(', ', @{ $result{'end'} }).')),
                             strand =Rle(strand(c('.join(', ', map { '"'.$_.'"' } @{ $result{'strand'} } ).'))),
                             score  =Rle(c('.join(', ', @{ $result{'score'} } ).')),
-                            ID=Rle(c('.join(', ', map { '"'.$_.'"' } @{ $result{'ID'} } ).'))
+                            Region =Rle(c('.join(', ', map { '"'.$_.'"' } @{ $result{'region'} } ).')),
+                            ID=Rle(c('.join(', ', map { '"'.$_.'"' } @{ $result{'ID'} } ).')),
+                            seqinfo=seqinfo(grref)
                             )'
         );
 
@@ -213,55 +227,61 @@ my $pngfile3 = $outbase.'_circle2.png';
 &R::eval('seqlengths(grmap)[names(seqlengths(grmap))] <<- seqlengths(gr)[names(seqlengths(grmap))]');
 &R::eval('setwd("'.$pwd.'")');
 &R::eval('seqlevels(grref, force=TRUE) <<- seqlevels(grref)[order(as.numeric(gsub("Group|MT","",seqlevels(grref))))]');
-&R::eval('save(list = ls(all=TRUE,envir=globalenv()), file = "'."test.RData".'")');
+&R::eval('seqlevels(grmap, force=TRUE) <<- seqlevels(grmap)[order(as.numeric(gsub("Group|MT","",seqlevels(grmap))))]');
 
 &R::eval('png(filename="'.$pngfile1.'", bg="white", res=300, width=3000, height=3000)
-p<<-ggplot() + layout_karyogram(grref, fill="gray56") + layout_karyogram(grmap,geom="rect", color="gold", fill="red")+ggtitle("'.$title.'")
+p<<- autoplot(seqinfo(grmap)) + layout_karyogram(grmap,geom="rect", ylim=c(11,21),aes(xmin = start, ymin = 11, xmax = end, ymax = score, fill=Region, colour=Region))+ggtitle("'.$title.'")+scale_color_discrete(na.value = "brown")+xlab("Chromosome Size (bp)")+ylab("ChIP-Seq Peak Signal")+theme_classic()+theme_tracks_sunset()+theme(strip.text.y = element_text(angle = 360), axis.ticks  = element_line(colour = "grey40", size = 0.25), axis.text.y = element_text(size=5,angle=0,hjust=1,vjust=0,face="plain") )+scale_fill_manual( values = c("promoter" = "blue", "other"= "gray40"))+scale_colour_manual( values = c("promoter" = "blue", "other"= "gray40"))+scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))
 plot(p)
 dev.off()');
 
 &R::eval("grmapplus <<- grmap[which(as.character(strand(grmap))=='+')]");
 &R::eval("grmapminus <<- grmap[which(as.character(strand(grmap))=='-')]");
-&R::eval("grmapnone <<- grmap[which(as.character(strand(grmap))=='*')]");
-&R::eval('
-png(filename="'.$pngfile2.'", bg="white", res=300, width=3000, height=3000)
-p <<- ggplot() + layout_circle(grref, geom = "text", aes(label = seqnames), vjust = 0, radius = 40, trackWidth = 2) + layout_circle(grref, geom = "ideo", fill = "azure2", radius = 30,trackWidth = 4)
-p <<- p + layout_circle(grref, geom = "scale", size = 2, radius = 35, trackWidth = 2)
-if ( dim(elementMetadata(grmapplus))[1] > 0 ) {
-    p <<- p + layout_circle(grmapplus, geom = "rect", color = "steelblue", radius = 26, trackWidth = 3)
-}
-if ( dim(elementMetadata(grmapminus))[1] > 0 ) {
-    p <<- p + layout_circle(grmapminus, geom = "rect", color = "seagreen", radius = 23, trackWidth = 3)
-}
-if ( dim(elementMetadata(grmapnone))[1] > 0 ) {
-    p <<- p + layout_circle(grmapnone, geom = "rect", color = "gold", radius = 23, trackWidth = 3)
-}
 
-p <<- p+ggtitle("'.$title.'")
-plot(p)
-dev.off()');
+&R::eval("grmapnone <<- grmap[which(as.character(strand(grmap))=='*')]");
+&R::eval('grmapnonepromo <<- grmapnone[which(as.character(elementMetadata(grmapnone)$Region)=="promoter")]');
+&R::eval('grmapnoneother <<- grmapnone[which(as.character(elementMetadata(grmapnone)$Region)=="other")]');
+
+#&R::eval('save(list = ls(all=TRUE,envir=globalenv()), file = "'."test.RData".'")');
+
+#&R::eval('
+#png(filename="'.$pngfile2.'", bg="white", res=300, width=3000, height=3000)
+#p <<- ggplot() + layout_circle(grref, geom = "text", aes(label = seqnames), vjust = 0, radius = 40, trackWidth = 2) + layout_circle(grref, geom = "ideo", fill = "azure2", radius = 30,trackWidth = 4)
+#p <<- p + layout_circle(grref, geom = "scale", size = 2, radius = 35, trackWidth = 2)
+#if ( dim(elementMetadata(grmapplus))[1] > 0 ) {
+#    p <<- p + layout_circle(grmapplus, geom = "rect", color = "steelblue", radius = 26, trackWidth = 3)
+#}
+#if ( dim(elementMetadata(grmapminus))[1] > 0 ) {
+#    p <<- p + layout_circle(grmapminus, geom = "rect", color = "gold", radius = 23, trackWidth = 3)
+#}
+#if ( dim(elementMetadata(grmapnone))[1] > 0 ) {
+#    p <<- p + layout_circle(grmapnone, geom = "rect", color = "seagreen", radius = 23, trackWidth = 3)
+#}
+#
+#p <<- p+ggtitle("'.$title.'")
+#plot(p)
+#dev.off()');
+
 
 &R::eval('
 png(filename="'.$pngfile3.'", bg="white", res=300, width=3000, height=3000)
-p <<- ggplot() + layout_circle(grref, geom = "text", aes(label = seqnames), vjust = 0, radius = 40, trackWidth = 2) + layout_circle(grref, geom = "ideo", fill = "azure2", radius = 30,trackWidth = 4)
+p <<- ggplot() + layout_circle(grref, geom = "ideo", fill = "azure2", radius = 30,trackWidth = 4)+layout_circle(grref, geom = "text", aes(label = seqnames), vjust = 0, radius = 40, trackWidth = 2)
 
 p <<- p + layout_circle(grref, geom = "scale", size = 2, radius = 35, trackWidth = 2)
 
-if ( dim(elementMetadata(grmapplus))[1] > 0 ) {
-    p <<- p + layout_circle(grmapplus, geom = "bar", aes(color=score, y=score), color = "steelblue", radius = -26, trackWidth = 3)
-}
-if ( dim(elementMetadata(grmapminus))[1] > 0 ) {
-    p <<- p + layout_circle(grmapminus, geom = "bar", aes(color=score, y=score), color = "seagreen", radius = -23, trackWidth = 3)
-}
-if ( dim(elementMetadata(grmapnone))[1] > 0 ) {
-    p <<- p + layout_circle(grmapnone, geom = "bar", aes(color=score, y=score), color = "gold", radius = -29, trackWidth = 6)
+if ( dim(elementMetadata(grmapnoneother))[1] > 0 ) {
+    p <<- p + layout_circle(grmapnoneother, geom = "bar", aes(y=score,fill=Region,colour=Region), colour="gray40", fill="gray40", radius = 30, trackWidth = -10)
 }
 
-p <<- p+ggtitle("'.$title.'")
+if ( dim(elementMetadata(grmapnonepromo))[1] > 0 ) {
+    p <<- p + layout_circle(grmapnonepromo, geom = "bar", aes(y=score,fill=Region,colour=Region), colour="blue", fill="blue", radius = 30, trackWidth = -10)
+}
+
+p <<- p + ggtitle("'.$title.'")+scale_fill_manual( values = c("promoter" = "blue", "other"= "gray40") )
+
 plot(p)
 dev.off()');
 
-#
+
 
 # Subroutines
 
