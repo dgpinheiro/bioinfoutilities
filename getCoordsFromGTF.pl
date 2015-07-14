@@ -76,14 +76,15 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $promoter_size, $outbase);
+my ($level, $infile, $promoter_size, $outbase, $chrsizefile, %chrsize);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|infile=s"=>\$infile,
             "p|promotersize=i"=>\$promoter_size,
-            "o|outbase=s"=>\$outbase
+            "o|outbase=s"=>\$outbase,
+            "s|chrsizefile=s"=>\$chrsizefile
     ) or &Usage();
 
 
@@ -107,6 +108,17 @@ $promoter_size||=1000;
 
 $LOGGER->logdie("Missing input file") unless ($infile);
 $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
+
+$LOGGER->logdie("Missing chr size file") unless ($chrsizefile);
+$LOGGER->logdie("Wrong chr size file ($chrsizefile)") unless (-e $chrsizefile);
+
+open(CHR, "<", $chrsizefile) or $LOGGER->logdie($!);
+while(<CHR>) {
+    chomp;
+    my ($chr, $size) = split(/\t/, $_);
+    $chrsize{ $chr} = $size;
+}
+close(CHR);
 
 my %data;
 
@@ -170,7 +182,12 @@ foreach my $transcript_id (sort { &compn($data{$a}->{'chr'}, $data{$b}->{'chr'})
         $tss = $data{$transcript_id}->{'eleft'};
 
         $promoter_end = $tss;
-        $promoter_start = $promoter_end-$promoter_size;
+
+        if ($tss < $promoter_size) {
+            $promoter_start = 0;
+        } else {
+            $promoter_start = $promoter_end-$promoter_size;
+        }            
 
         foreach my $ar_e (sort { $a->[0] <=> $b->[0] } @{ $data{$transcript_id}->{'exons'} }) {
             push(@exons, [ @{ $ar_e } ]);
@@ -222,7 +239,11 @@ foreach my $transcript_id (sort { &compn($data{$a}->{'chr'}, $data{$b}->{'chr'})
         $tss = $data{$transcript_id}->{'eright'}-1;
 
         $promoter_start = $tss+1;
-        $promoter_end = $promoter_start+$promoter_size;
+        if ( ($tss+$promoter_size) > $chrsize{ $data{$transcript_id}->{'chr'} }) {
+            $promoter_end = $chrsize{ $data{$transcript_id}->{'chr'} };
+        } else {
+            $promoter_end = $promoter_start+$promoter_size;
+        }            
 
         foreach my $ar_e (sort {$b->[1] <=> $a->[0]} @{ $data{$transcript_id}->{'exons'} }) {
             push(@exons, [ @{ $ar_e } ]);
@@ -375,6 +396,7 @@ Argument(s)
         -h      --help          Help
         -l      --level         Log level [Default: FATAL]
         -i      --infile        Input file
+        -s      --chrsizefile   Chromosome size file
         -p      --promoter_size Promoter size in bp [Default: 1000]
         -o      --outbase       Output base [Default ./coords]
 
