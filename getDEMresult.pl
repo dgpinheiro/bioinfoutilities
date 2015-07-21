@@ -83,13 +83,14 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $samples);
+my ($level, $infile, $samples, %totalcmd);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|infile=s"=> \$infile,
-            "s|samples=s"=>\$samples
+            "s|samples=s"=>\$samples,
+            "t|totals=s"=>\%totalcmd
     ) or &Usage();
 
 
@@ -178,9 +179,17 @@ foreach my $mirna (keys %data) {
 
         my $v1 = $data{$mirna}->{ $cmp_ar->[0] };
         my $v2 = $data{$mirna}->{ $cmp_ar->[1] };
-        
-        my $t1 = $total{ $cmp_ar->[0] };
-        my $t2 = $total{ $cmp_ar->[1] };
+        my ($t1, $t2);
+        if ($totalcmd{ $cmp_ar->[0] } ) {
+            $t1 = $totalcmd{ $cmp_ar->[0] };
+        } else {
+            $t1 = $total{ $cmp_ar->[0] };
+        }
+        if ($totalcmd{ $cmp_ar->[1] } ) {
+            $t2 = $totalcmd{ $cmp_ar->[1] };
+        } else {
+            $t2 = $total{ $cmp_ar->[1] };
+        }            
         
         my $vn1 = sprintf("%.2f", ((1000000/$t1)*$v1));
         my $vn2 = sprintf("%.2f", ((1000000/$t2)*$v2));
@@ -202,7 +211,12 @@ foreach my $mirna (keys %data) {
         #else {
         #    ($pvalue) = $winflat[1] =~ /\) = (\S+)/;
         #}
-        my $pvalue = &R::eval("AC.pvalue($v1, $v2, $t1, $t2)");
+        my $pvalue;
+        if ($t2 <= $t1) {
+            $pvalue = &R::eval("AC.pvalue($v1, $v2, $t1, $t2)");
+        } else {
+            $pvalue = &R::eval("AC.pvalue($v2, $v1, $t2, $t1)");
+        }
         $LOGGER->logdie("Problem calculating p-value ($pvalue): $v1, $v2, $t1, $t2") if ((!defined $pvalue)||( $pvalue!~/^\d+(\.\d+)?(e[+-]\d+)?$/ ));
         $LOGGER->logdie("Error on p-value ($pvalue) not possible: $v1, $v2, $t1, $t2") if (($pvalue<0)||($pvalue>1));
         #push(@pvalue, sprintf("%.3f", $pvalue) );
@@ -305,6 +319,7 @@ Argument(s)
         -l      --level     Log level [Default: FATAL]
         -i      --infile    Input file (output of miRDeep2 quantifier)
         -s      --samples   Sample list
+        -t      --totals    Totals for normalization
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
