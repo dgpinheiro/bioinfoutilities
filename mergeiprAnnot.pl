@@ -169,7 +169,9 @@ while(<IPR>) {
     my ($acc, $md5, $seqlen, $analysis_name, $analysis_id, $analysis_desc, $start, $stop, $score, $status, $date, $ipr_id, $ipr_desc, $gos, $paths) = split(/\t/, $_);
     if (exists $annot{ $acc }) {
         if ($choosen_analysis eq 'IPR') {
-            $annot{ $acc }->{ $ipr_id } = $ipr_desc;
+            if ($ipr_id) {
+                $annot{ $acc }->{ $ipr_id } = $ipr_desc;
+            }                
         } elsif ($analysis_name eq $choosen_analysis) {
             $annot{ $acc }->{ $analysis_id } = $analysis_desc;
         } elsif ($choosen_analysis eq 'GO') {
