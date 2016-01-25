@@ -76,14 +76,15 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $colname, $normby);
+my ($level, $infile, $colname, $normby, $filter);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|infile=s"=>\$infile,
             "c|colname=s"=>\$colname,
-            "n|norm=i"=>\$normby
+            "n|norm=i"=>\$normby,
+            "f|filter=i"=>\$filter
     ) or &Usage();
 
 
@@ -144,8 +145,10 @@ while(<IN>) {
             for (my $j=0; $j<= $i; $j++) {
                 push(@v, $taxlevel[$j]);
             }
-            my $class=join('|', @v);
 
+            my $class=join('|', @v);
+            
+            $result{ $class }->{ 'level' } = scalar(@v) unless (exists $result{ $class }->{ 'level' });
             
             foreach my $h (@hnumber) {
                 $result{ $class }->{ 'all' } = 0 unless (exists $result{ 'unclassified' }->{ 'all' });
@@ -157,6 +160,8 @@ while(<IN>) {
         }    
         
     } else {
+        $result{ 'unclassified' }->{ 'level' } = 0 unless (exists $result{ 'unclassified' }->{ 'level' });
+
         foreach my $h (@hnumber) {
             $result{ 'unclassified' }->{ 'all' } = 0 unless (exists $result{ 'unclassified' }->{ 'all' });
             $result{ 'unclassified' }->{ 'all' }+=$data{ $h };
@@ -184,11 +189,13 @@ if ($normby) {
 
 print join("\t", $colname, @hnumber),"\n";
 foreach my $class (sort {$result{$b}->{'all'} <=> $result{$a}->{'all'}} keys %result) {
-    my @v;
-    foreach my $h (@hnumber) {
-        push(@v, $result{$class}->{$h} * $normfactor{ $h });
+    if  ((!$filter)||($result{$class}->{'level'} == $filter)) { 
+        my @v;
+        foreach my $h (@hnumber) {
+            push(@v, $result{$class}->{$h} * $normfactor{ $h });
+        }
+        print $class,"\t",join("\t", map { sprintf("%.2f",$_) } @v),"\n";
     }
-    print $class,"\t",join("\t", map { sprintf("%.2f",$_) } @v),"\n";   
 }
 
 # Subroutines
@@ -210,6 +217,7 @@ Argument(s)
         -i      --infile    Input file (count matrix with taxonomy in mpa format)
         -c      --colname   Annotation column name of taxonomy in mpa format
         -n      --normby    Normalization by [Default: Off]
+        -f      --filter    Filter by level [Default: Off]
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
