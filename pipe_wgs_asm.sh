@@ -271,7 +271,7 @@ for i in ../partitioned/*.fq; do
    for k in {19..51..16}; do
 	echo "         ${k} ..."
 	mkdir -p ./${name}.minia.$k.d
-   	minia -nb-cores ${threads} -kmer-size $k -max-memory ${avail_mem} -out-dir ${name}.minia.$k.d -out ${name}.minia.$k.d/kak -contig-max-len 100 -in ${i} > ${name}.minia.$k.log.out.txt 2> ${name}.minia.$k.log.err.txt
+   	minia -nb-cores ${threads} -kmer-size $k -max-memory ${avail_mem} -out-dir ${name}.minia.$k.d -out ${name}.minia.$k.d/kak -in ${i} > ${name}.minia.$k.log.out.txt 2> ${name}.minia.$k.log.err.txt
    done
 
    echo "      ABySS ..."
