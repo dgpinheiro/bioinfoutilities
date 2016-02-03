@@ -24,48 +24,26 @@
 #  Daniel Guariz Pinheiro
 #  dgpinheiro@gmail.com
 
+# as linhas que iniciam com cerquilha são comentários
 
 #############################
 # Caminhos dos arquivos e diretórios de entrada (input - diretório com os arquivos .fastq)
 # 
 
-group_data_path="$1"
-if [ ! ${group_data_path} ]
+# input - diretório contendo os arquivos de entrada no formato .fastq
+input="$1"
+if [ ! ${input} ]
 then   
 	echo "Missing data path to directory containing *.fastq files"
         exit
 else   
-        if [ ! -d ${group_data_path} ]
-        then   
-		echo "Wrong data path to directory (${group_data_path}). Check first argument (group_data_path)"
-                exit
-        fi
-fi
-
-analysis_name="$2"
-if [ ! ${analysis_name} ]
-then   
-	echo "Missing analysis name"
-        exit
-fi
-
-
-# input - diretório contendo os arquivos de entrada no formato .fastq
-input="${group_data_path}/${analysis_name}"
-
-# as linhas que iniciam com cerquilha são comentários
-
-if [ ! ${input} ]
-then   
-        echo "Missing input directory"
-        exit
-else   
         if [ ! -d ${input} ]
         then   
-		echo "Wrong input directory (${input}). Check first argument (group_data_path) or (analysis_name)"
+		echo "Wrong data path to input directory (${input}). Check first argument (Directory containing *.fastq files)"
                 exit
         fi
 fi
+
 
 # Número de threads
 threads=14
