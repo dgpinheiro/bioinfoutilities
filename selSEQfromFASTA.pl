@@ -139,6 +139,9 @@ foreach my $each_idparam (split(/\,/, $idparam)) {
         open(IN, "<", $each_idparam) or $LOGGER->logdie($!);
         while(<IN>) {
             chomp;
+            $_=~s/^ *//;
+            $_=~s/ *$//;
+            $_=~s/\r//;
             $SELECTION{$_}=0;
         }
         close(IN);
@@ -153,6 +156,12 @@ my $seqout = Bio::SeqIO->new(   -fh=>\*STDOUT,
                                 -format=>'FASTA');
 
 while(my $seq=$seqin->next_seq() ) {
+
+    my $seqid=$seq->display_id();
+    $seqid=~s/^ *//;
+    $seqid=~s/ *$//;
+
+
     foreach my $ID (keys %SELECTION ) {
         if ($regexp) {
             my $tmp = $regexp;
@@ -163,7 +172,7 @@ while(my $seq=$seqin->next_seq() ) {
 
             $tmp =~ s/\$(\w+)\b/$user_defs{$1}/g;
             
-            if ($seq->display_id() =~ /$tmp/) {
+            if ($seqid =~ /$tmp/) {
                 if (! defined $preserve) {
                     $seq->display_id($ID);
                 }
@@ -171,10 +180,9 @@ while(my $seq=$seqin->next_seq() ) {
                 $SELECTION{$ID}++;
            }
         } else {
-            if ($seq->display_id() eq $ID) {
+            if ($seqid eq $ID) {
                 $seqout->write_seq( $seq );
                 $SELECTION{$ID}++;
-
             }
         }
     }
