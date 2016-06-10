@@ -167,7 +167,7 @@ if ($res->is_success()) {
                                 }
                                 
                                 $fasta_seq=~s/(.{50})/$1\n/g;
-                                print '>'.$kid.':'.$acc."\t".$fasta_desc."\n".$fasta_seq."\n";
+                                print '>'.$kid.':'.lc($db).':'.$acc."\t".$fasta_desc."\n".$fasta_seq."\n";
                                 
                             }
 
