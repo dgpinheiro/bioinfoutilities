@@ -83,15 +83,28 @@ INIT {
 use Bio::SeqIO;
 
 
-my ($level, $infile, $idparam, $preserve);
+my ($level, $infile, $idparam, $preserve, $regexp);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|id=s"=>\$idparam,
             "f|fasta=s"=>\$infile,
-            "p|preserve"=>\$preserve
+            "p|preserve"=>\$preserve,
+            "r|regexp=s"=>\$regexp
     ) or &Usage();
+
+if ($regexp) {
+   
+    $LOGGER->logdie('Not found $id variable') unless ($regexp=~/\$id\b/);
+    
+    my %user_defs = ( 
+        id  => "TESTE",
+    );
+
+    my $tmp=$regexp;
+    $tmp =~ s/\$(\w+)\b/$user_defs{$1}/g;
+}
 
 
 if ($level) {
@@ -126,6 +139,9 @@ foreach my $each_idparam (split(/\,/, $idparam)) {
         open(IN, "<", $each_idparam) or $LOGGER->logdie($!);
         while(<IN>) {
             chomp;
+            $_=~s/^ *//;
+            $_=~s/ *$//;
+            $_=~s/\r//;
             $SELECTION{$_}=0;
         }
         close(IN);
@@ -140,14 +156,34 @@ my $seqout = Bio::SeqIO->new(   -fh=>\*STDOUT,
                                 -format=>'FASTA');
 
 while(my $seq=$seqin->next_seq() ) {
+
+    my $seqid=$seq->display_id();
+    $seqid=~s/^ *//;
+    $seqid=~s/ *$//;
+
+
     foreach my $ID (keys %SELECTION ) {
-        my $qID = quotemeta($ID);
-        if ($seq->display_id() =~ /$qID/) {
-            if ($preserve) {
-                $seq->display_id($qID);
+        if ($regexp) {
+            my $tmp = $regexp;
+
+            my %user_defs = ( 
+                id  => quotemeta($ID)
+            );
+
+            $tmp =~ s/\$(\w+)\b/$user_defs{$1}/g;
+            
+            if ($seqid =~ /$tmp/) {
+                if (! defined $preserve) {
+                    $seq->display_id($ID);
+                }
+                $seqout->write_seq( $seq );
+                $SELECTION{$ID}++;
+           }
+        } else {
+            if ($seqid eq $ID) {
+                $seqout->write_seq( $seq );
+                $SELECTION{$ID}++;
             }
-            $seqout->write_seq( $seq );
-            $SELECTION{$ID}++;
         }
     }
 }
@@ -162,7 +198,7 @@ foreach my $ID (keys %SELECTION) {
 
 sub Usage {
     my ($msg) = @_;
-	Readonly my $USAGE => <<"END_USAGE";
+    Readonly my $USAGE => <<"END_USAGE";
 Daniel Guariz Pinheiro (dgpinheiro\@gmail.com)
 (c)2012 Universidade de São Paulo
 
@@ -172,11 +208,12 @@ Usage
 
 Argument(s)
 
-        -h      --help      Help
-        -l      --level     Log level [Default: FATAL]
-        -f      --fasta     Input fasta file or <STDIN>
-        -i      --id        ID list/file 
-        -p      --preserve  Preserve ID 
+        -h      --help              Help
+        -l      --level             Log level [Default: FATAL]
+        -f      --fasta             Input fasta file or <STDIN>
+        -i      --id                ID list/file 
+        -p      --preserve          Preserve ID 
+        -r      --regexp            Regular Expression
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
