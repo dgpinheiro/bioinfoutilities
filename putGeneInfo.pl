@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $gffile, $col, $regexp);
+my ($level, $infile, $gffile, $col, $regexp, $noheader);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -84,7 +84,8 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "i|infile=s"=>\$infile,
             "g|gffile=s"=>\$gffile,
             "c|col=i"=>\$col,
-            "r|regexp=s"=>\$regexp
+            "r|regexp=s"=>\$regexp,
+            "n|noheader"=>\$noheader
     ) or &Usage();
 
 
@@ -110,7 +111,7 @@ my %parent;
 $regexp||='^(\S+)';
 
 # /data/tmp/files/rnas/LBDAv0.2.gff
-open(GFF, "<", $gffile) or $LOGGER->logdie($!);
+open(GFF, "<", $gffile) or $LOGGER->logdie("$! : $gffile");
 while(<GFF>) {
     next if ($_=~/^#/);
     chomp;
@@ -146,16 +147,32 @@ my @header;
 
 while(<IN>) {
     chomp;
-    if ($.==1) {
+    if (($.==1)&&(!$noheader)) {
         @header=split(/\t/, $_);
         print join("\t", 'GENE', @header),"\n";
     } else {
+        
+        unless (@header) {
+            my $c=0;
+            foreach my $v ( split(/\t/, $_) ) {
+                push(@header, $c++);
+            }
+        }
+
         my %data;
         @data{ @header } = split(/\t/, $_);
         
         if ($data{ $header[ $col-1 ] } =~ /$regexp/) {
-            my $ID=$1;
-            my $gene = $parent{$ID};
+            my @ids=($1, $2);
+            my $gene;
+            my $ID;
+            for (my $i=0; $i <= $#ids; $i++) {
+                if ($ids[$i]) {
+                    $ID=$ids[$i];
+                    $gene = $parent{$ID};
+                    last if ($gene);
+                } 
+            }
             unless ($gene) {
                foreach my $g (keys %gene) {
                    foreach my $c (keys %{ $gene{$g} }) {
@@ -195,6 +212,7 @@ Argument(s)
         -c      --col       Column number [Default: 1]
         -g      --gffile    GFF
         -r      --regexp    Regular expression to capture from infile column selected
+        -n      --noheader  No header info
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
