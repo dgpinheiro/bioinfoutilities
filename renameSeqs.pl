@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $informat, $outformat, $outfile, $prefix);
+my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile);
 
 #Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -85,7 +85,8 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "o|outfile=s"=>\$outfile,
             "if|informat=s"=>\$informat,
             "of|outformat=s"=>\$outformat,
-            "p|prefix=s"=>\$prefix
+            "p|prefix=s"=>\$prefix,
+            "l|listfile=s"=>\$listfile
     ) or &Usage();
 
 
@@ -140,9 +141,18 @@ use Bio::SeqIO;
 my $in  = Bio::SeqIO->new(-fh=>$fhin,  -format=>$informat);
 my $out = Bio::SeqIO->new(-fh=>$fhout, -format=>$outformat);
 
+my $fhlist = \*STDERR;
+if ($listfile) {
+    $fhlist = FileHandle->new;
+    $fhlist->open(">$listfile");
+}
+
 my $c = 1;
 while ( my $seq = $in->next_seq() ) {
     my $hex = sprintf("%010X", $c);
+    if ($listfile) {
+        print { $fhlist } $seq->display_id(),"\t",$prefix.$hex,"\n";
+    }
     $seq->display_id($prefix.$hex);
     $out->write_seq( $seq );
     $c++;
@@ -169,6 +179,7 @@ Argument(s)
         -if     --informat  Input file format [Default: FASTQ]
         -of     --outformat Output file format [Default: FASTQ]
         -p      --prefix    Prefix [Default: SEQ]
+        -l      --listfile  List file with old and new name
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
