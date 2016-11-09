@@ -148,7 +148,7 @@ my $queriesin = Bio::SeqIO->new(-file=>$qfile, -format=>'FASTA');
 }
 
 my $tmpdir = tempdir( template=> 'rRhXXXX', CLEANUP => 1 );
-print $tmpdir,"\n";
+#print $tmpdir,"\n";
 
 my $cwd = getcwd();
 my $abs_path_tfile = abs_path($tfile);
@@ -164,16 +164,22 @@ while ( my $seq = $queriesin->next_seq() ) {
     }
     
     my $outfile = "$outdir/$prefix".$mir.'.txt';
-    {
+
+    unless ( -e $outfile ) {
+
         open(OUT, ">", $outfile) or $LOGGER->logdie($!);
         close(OUT);
-    }
-    my $abs_path_outfile = abs_path($outfile);
-    my $abs_path_qfile = abs_path($qfile);
+    
+        my $abs_path_outfile = abs_path($outfile);
+        my $abs_path_qfile = abs_path($qfile);
 
-    chdir($outdir);
-    # RUN RNAhybrid
-    `RNAhybrid -d $parameter{$mir}->{'xi'},$parameter{$mir}->{'theta'} $config -q $abs_path_qfile -t $abs_path_tfile > $abs_path_outfile`;
+        chdir($outdir);
+        
+        # RUN RNAhybrid
+        `RNAhybrid -d $parameter{$mir}->{'xi'},$parameter{$mir}->{'theta'} $config -q $abs_path_qfile -t $abs_path_tfile > $abs_path_outfile`;
+
+    }
+        
     chdir($cwd);
 }
 
