@@ -313,7 +313,6 @@ foreach my $chr ( keys %allgene ) {
                 
                 my $smallest3plen = $threepminsize;
                 if (exists $feature{$mRNAid}->{'child'}->{'CDS'}) {
-                    
 
                     my %eachCDS;
                     {
@@ -322,6 +321,7 @@ foreach my $chr ( keys %allgene ) {
                             my ($CDSid);
                             if ($cf->has_tag('ID')) {
                                 ($CDSid) = $cf->get_tag_values('ID');
+                                $CDSid=~s/-\d+$//;
                             }
                             else {
                                 # OGS (each mRNA has only one CDS)
