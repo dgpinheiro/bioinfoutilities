@@ -152,7 +152,13 @@ my %rnaparent;
 while(<GFF>) {
     chomp;
     if ($_=~/^#/) {
+	if ($_=~/##sequence-region (\S+)/) {
+		my $nn= $rename{ $1 };
+		$_=~s/##sequence-region \S+/##sequence-region $nn/;
+	} 
+
         print $_,"\n";
+	
     } else {
         my (@data) = split(/\t/, $_);
         
