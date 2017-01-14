@@ -15,27 +15,30 @@ die "Missing reference file(s)" unless ($reffile);
 my %refdesc;
 foreach my $rfile (glob("$reffile")) {
 	print STDERR "Loading $rfile ...\n";
-
-	my $seqref;
+	
 	if ($rfile =~ /\.gz$/) {
-		$seqref = Bio::SeqIO->new(-file=>"gunzip -c $rfile |", -format=>'FASTQ');
+		open(REF, "-|", "zcat $rfile") or die $!;
 	} else {
-		$seqref = Bio::SeqIO->new(-file=>"cat $rfile |", -format=>'FASTQ');
+		open(REF, "-|", "cat $rfile") or die $!;
 	}
+	
+	my $seqref = Bio::SeqIO->new(-fh=>\*REF, -format=>'FASTQ');
 	
 	while(my $seq=$seqref->next_seq()) {
 		#print $seq->display_id(),"\t",$seq->desc(),"\n";
 		$refdesc{ $seq->display_id() }->{ $seq->seq() } = $seq->desc();
 	}
+	
+	close(REF);
 }
 
-my $seqin;
 if ($infile =~ /\.gz/) {
-	$seqin = Bio::SeqIO->new(-file=>"gunzip -c $infile |", -format=>'FASTQ');
+	open(IN, "-|", "zcat $infile") or die $!;
 } else {
-	$seqin = Bio::SeqIO->new(-file=>$infile, -format=>'FASTQ');
+	open(IN, "-|", "cat $infile") or die $!;
 }
 
+my $seqin = Bio::SeqIO->new(-fh=>\*IN, -format=>'FASTQ');
 my $seqout = Bio::SeqIO->new(-fh=>\*STDOUT, -format=>'FASTQ');
 
 while(my $seq=$seqin->next_seq()) {
@@ -46,3 +49,4 @@ while(my $seq=$seqin->next_seq()) {
 	$seqout->write_seq( $seq );
 }
 
+close(IN);
