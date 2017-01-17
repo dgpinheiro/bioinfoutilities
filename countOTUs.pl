@@ -76,15 +76,15 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $colname, $normby, $filter);
+my ($level, $infile, $colname, $normby, $rank);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
+            "r|rank=s"=>\$rank,
             "i|infile=s"=>\$infile,
             "c|colname=s"=>\$colname,
-            "n|norm=i"=>\$normby,
-            "f|filter=i"=>\$filter
+            "n|norm=i"=>\$normby
     ) or &Usage();
 
 
@@ -109,6 +109,23 @@ $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
 $LOGGER->logdie("Missing column name with taxonomy in mpa format") unless ($colname);
 
 
+my %tonumber = (
+    'u'  => -2, # unclassified
+    'r'  => -1, # root
+    'd' => 0, # domain
+    'k' => 1, # kingdom
+    'p' => 2, # phylum
+    'c' => 3, # class
+    'o' => 4, # order
+    'f' => 5, # family
+    'g' => 6, # genus
+    's' => 7  # species
+);
+
+if ($rank) {
+    $LOGGER->logdie("Wrong rank letter ($rank)") unless (exists $tonumber{$rank});
+}
+
 open(IN, "<", $infile) or $LOGGER->logdie($!);
 my $header_line=<IN>;
 chomp($header_line);
@@ -130,6 +147,8 @@ while(<IN>) {
     chomp;
     my %data;
     @data{ @header } = split(/\t/, $_);
+
+    # get header names of numbers (read counts for each sample)
     if (scalar(@hnumber) == 0) {
         foreach my $h (@header) {
             if ( $data{ $h } =~ /^\d+(?:\.\d+)?$/ ) {
@@ -138,6 +157,12 @@ while(<IN>) {
             }
         }
     }
+    
+    # add total read counts for each sample
+    foreach my $h (@hnumber) {
+        $total{ $h }+=$data{$h};
+    }
+
     if ($data{ $colname }) {
         my @taxlevel = (split(/\|/, $data{ $colname }));
         for (my $i=0; $i<= $#taxlevel; $i++) {
@@ -145,22 +170,34 @@ while(<IN>) {
             for (my $j=0; $j<= $i; $j++) {
                 push(@v, $taxlevel[$j]);
             }
-
+            
             my $class=join('|', @v);
             
-            $result{ $class }->{ 'level' } = scalar(@v) unless (exists $result{ $class }->{ 'level' });
-            
+            unless (exists $result{ $class }->{ 'level' }) {
+                unless ($class eq 'root') {
+
+                    $result{ $class }->{ 'level' } = scalar(@v);
+                    ($result{ $class }->{ 'rank' }) = $v[$#v]=~/^(\w)__/;
+
+                    $LOGGER->logdie("Class ($class) not ranked ($v[$#v])") unless ($result{ $class }->{ 'rank' });
+                } else {
+
+                    $result{ $class }->{ 'level' } = 0;
+                    $result{ $class }->{ 'rank'  } = 'r';
+
+                }
+            }
+
             foreach my $h (@hnumber) {
-                $result{ $class }->{ 'all' } = 0 unless (exists $result{ 'unclassified' }->{ 'all' });
+                $result{ $class }->{ 'all' } = 0 unless (exists $result{ $class }->{ 'all' });
                 $result{ $class }->{ 'all' }+=$data{ $h };
                 $result{ $class }->{ $h } = 0 unless (exists $result{ $class }->{ $h });
                 $result{ $class }->{ $h }+= $data{ $h };
-                $total{ $h }+=$data{ $h };
             }
         }    
-        
     } else {
         $result{ 'unclassified' }->{ 'level' } = 0 unless (exists $result{ 'unclassified' }->{ 'level' });
+        $result{ 'unclassified' }->{ 'rank'  } = 'u' unless (exists $result{ 'unclassified' }->{ 'rank' });
 
         foreach my $h (@hnumber) {
             $result{ 'unclassified' }->{ 'all' } = 0 unless (exists $result{ 'unclassified' }->{ 'all' });
@@ -169,9 +206,9 @@ while(<IN>) {
             $result{ 'unclassified' }->{ $h } = 0 unless (exists $result{ 'unclassified' }->{ $h });
             $result{ 'unclassified' }->{ $h }+=$data{ $h };
 
-            $total{ $h }+=$data{ $h };
         }
     }
+            
 }
 close(IN);
 
@@ -187,14 +224,38 @@ if ($normby) {
     }
 }
 
-print join("\t", $colname, @hnumber),"\n";
-foreach my $class (sort {$result{$b}->{'all'} <=> $result{$a}->{'all'}} keys %result) {
-    if  ((!$filter)||($result{$class}->{'level'} == $filter)) { 
+my %lc;
+
+print join("\t", 'rank', $colname, @hnumber),"\n";
+foreach my $class (sort { $tonumber{ $result{$b}->{'rank'} } <=> $tonumber{ $result{$a}->{'rank'} } || $result{$b}->{'all'} <=> $result{$a}->{'all'}} keys %result) {
+    if  ((! defined $rank)||( $tonumber{$result{$class}->{'rank'}} <= $tonumber{$rank} )) { 
+
         my @v;
         foreach my $h (@hnumber) {
             push(@v, $result{$class}->{$h} * $normfactor{ $h });
         }
-        print $class,"\t",join("\t", map { sprintf("%.2f",$_) } @v),"\n";
+
+        my $set;
+        my @r = @v;
+        if (exists $lc{$class}) {
+            for (my $i=0; $i<=$#hnumber; $i++) {
+                $r[$i]-=$lc{$class}->[$i];
+                if ($r[$i] > 0) {
+                    $set=1;
+                }
+            }
+        } else {
+            $set = 1;
+        }
+
+        print $result{$class}->{'rank'},"\t",$class,"\t",join("\t", map { sprintf("%.3f",$_) } @r),"\n" if ($set);
+
+        my $lowerclass=$class;
+        $lowerclass=~s/\|[^\|]+$//;
+        if ($lowerclass eq "") {
+            $lowerclass = 'root';
+        }
+        $lc{$lowerclass} = \@v;
     }
 }
 
@@ -217,7 +278,7 @@ Argument(s)
         -i      --infile    Input file (count matrix with taxonomy in mpa format)
         -c      --colname   Annotation column name of taxonomy in mpa format
         -n      --normby    Normalization by [Default: Off]
-        -f      --filter    Filter by level [Default: Off]
+        -r      --rank      Filter by rank (one letter) [Default: Off]
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
@@ -225,4 +286,5 @@ END_USAGE
 	print STDERR $USAGE;
     exit(1);
 }
+
 
