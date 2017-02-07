@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $iprfile, $tabfile, $colname, $newname, $choosen_analysis, $kegg_db);
+my ($level, $iprfile, $tabfile, $colname, $newname, $choosen_analysis, $kegg_db, $cross_clstr);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -86,7 +86,8 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "c|column=s"=>\$colname,
             "a|analysis=s"=>\$choosen_analysis,
             "n|nanme=s"=>\$newname,
-            "k|kegg_db=s"=>\$kegg_db
+            "k|kegg_db=s"=>\$kegg_db,
+            "x|cross_clstr=s"=>\$cross_clstr
     ) or &Usage();
 
 
@@ -112,6 +113,33 @@ $LOGGER->logdie("Missing tabular file") unless ($tabfile);
 $LOGGER->logdie("Wrong tabular file ($tabfile)") unless (-e $tabfile);
 
 $LOGGER->logdie("Missing column name") unless ($colname);
+
+
+my %clstrmember;
+
+if ($cross_clstr)  {
+    $LOGGER->logdie("Wrong cluster file ($cross_clstr)") unless (-e $cross_clstr);
+    my $cltid;
+    open(CLT, "<", $cross_clstr) or $LOGGER->logdie($!);
+    while(<CLT>) {
+        chomp;
+        if ( $_ =~ /^>(.+)/ ) {
+            $cltid = $1;
+            $cltid =~ s/\s/_/g;
+            $cltid =~ s/Cluster/cluster/;
+        }
+        else {
+            if ($cltid) {
+                if ( $_ =~ />([^\.\s]+)/ ) {
+                    my $member=$1;
+                    push(@{$clstrmember{$cltid}},$member);
+                }
+            }
+        }
+    }
+    close(CLT);
+
+}
 
 my $dbh;
 
@@ -159,6 +187,20 @@ while(<TAB>) {
     @data{ @header } = split(/\t/, $_);
     push(@res, \%data);
     $annot{ $data{ $colname } } = undef;
+
+    if ($cross_clstr) {
+        my ($q) =  $data{$colname}=~/(cluster_\d+)/;
+        if ($q) {
+            if ($clstrmember{ $q }) {
+                for my $x (@{$clstrmember{ $q }}) {
+                    $annot{ $x } = undef;
+                }
+            } else {
+                $LOGGER->logdie("Error: $colname ($data{$colname})");
+            }
+        }
+    }
+
 }
 close(TAB);
 
@@ -201,9 +243,28 @@ close(IPR);
 print join("\t", @newheader),"\n";
 foreach my $hr_data ( @res ) {
     
-    $hr_data->{ $newname.'.id' } = join(';', map {$_||''} keys %{ $annot{ $hr_data->{ $colname } } });
-    $hr_data->{ $newname.'.desc' } = join(';', map {$_||''} values %{ $annot{ $hr_data->{ $colname } } });
+    my %info;
 
+    my @x = $hr_data->{ $colname };
+    if ($cross_clstr) {
+        my ($q) =  $hr_data->{$colname}=~/(cluster_\d+)/;
+        if ($q) {
+            if ($clstrmember{ $q }) {
+                push(@x, @{$clstrmember{ $q }});
+            } else {
+                $LOGGER->logdie("Error: $colname ($hr_data->{$colname})");
+            }
+        }
+    }
+    foreach my $q (@x) {
+        foreach my $id (keys %{ $annot{ $q } }) {
+            $info{$id} = $annot{$q}->{$id};
+        }
+    }
+    
+    $hr_data->{ $newname.'.id' } = join(';', map {$_||''} keys %info);
+    $hr_data->{ $newname.'.desc' } = join(';', map {$_||''} values %info);
+    
     print join("\t", @{$hr_data}{ @newheader }),"\n";
 }
 
@@ -221,14 +282,15 @@ Usage
 
 Argument(s)
 
-        -h      --help  Help
-        -l      --level Log level [Default: FATAL]
-        -i      --ipr       InterProScan .tsv file
-        -t      --tab       Tabular file (count matrix)
-        -c      --col       ID column name
-        -n      --name      Annotation column basename [Default: choosen analysis -a/--analysis]
-        -a      --analysis  InterProScan Analysis [Default: IPR]
-        -k      --kegg_db   KEGG db (ko.db from KOBAS)
+        -h      --help          Help
+        -l      --level         Log level [Default: FATAL]
+        -i      --ipr           InterProScan .tsv file
+        -t      --tab           Tabular file (count matrix)
+        -c      --col           ID column name
+        -n      --name          Annotation column basename [Default: choosen analysis -a/--analysis]
+        -a      --analysis      InterProScan Analysis [Default: IPR]
+        -k      --kegg_db       KEGG db (ko.db from KOBAS)
+        -x      --cross_clstr   Cross clstr data
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
