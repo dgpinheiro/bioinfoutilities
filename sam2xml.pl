@@ -173,7 +173,7 @@ while(<$fh>) {
         $LOGGER->logdie('Not found ZI flag');
     }
 
-    if ($extra[6]=~/ZF:i:(\d+)/) {
+    if ($extra[6]=~/ZF:i:(-?\d+)/) {
         $frame=$1;
     } else {
         $LOGGER->logdie('Not found ZF flag');
