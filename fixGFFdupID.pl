@@ -150,13 +150,13 @@ while(<$fhin>) {
         my @F = split(/\t/, $_);
         my ($ID) = $F[8]=~/ID=([^;]+)/;
 
-        if ($F[2] eq 'gene') {
+        if (($F[2] eq 'gene')||($F[2] eq 'pseudogene')) {
             print GENE $_,"\n";
             unless (exists $gene{ $ID }) {
                 $gene_count{$ID} = 0;
             }
             $gene{ $ID }->{ $F[0] }->{ $F[6] }->{ $F[3] }->{ $F[4] } = { 'data'=>\@F, 'name'=>$ID.'_'.++$gene_count{$ID} };
-        } elsif (($F[2] eq 'RNA')||($F[2] eq 'miRNA')) {
+        } elsif (($F[2] eq 'RNA')||($F[2] eq 'miRNA')||($F[2] eq 'snoRNA')||($F[2] eq 'snRNA')) {
             print RNA $_,"\n";
             unless (exists $rna{ $ID }) {
                 $rna_count{$ID} = 0;
@@ -164,8 +164,9 @@ while(<$fhin>) {
             $rna{ $ID }->{ $F[0] }->{ $F[6] }->{ $F[3] }->{ $F[4] } = { 'data'=>\@F, 'name'=>$ID.'_'.++$rna_count{$ID} };
         } else {
             my ($Parent) = $F[8]=~/Parent=([^;]+)/;
+            $LOGGER->logdie("Missing Parent for $F[8]") unless ($Parent);
             if (exists $gene{ $Parent }) {
-                $LOGGER->logdie("Found a gene parent that is not an RNA/miRNA ($Parent) [$_]");
+                $LOGGER->logdie("Found a gene parent that is not an RNA/miRNA/snoRNA/snRNA ($Parent) [$_]");
             }
             unless (exists $parent{ $ID }) {
                 $parent_count{$ID} = 0;
