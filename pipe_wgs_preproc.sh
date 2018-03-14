@@ -53,7 +53,7 @@ threads=14
 #
 
 # Diretório base onde estão os adaptadores
-adap_barc_primer_path="/share/tank/db/adap_barc_primer"
+adap_barc_primer_path="./refs/adapter/"
 
 # scythe_adapters_3p_techseq_path - caminho para o arquivo contendo os adaptadores 3p
 # (de acordo com o protocolo/tecnologia de sequenciamento) para o programa scythe

@@ -294,6 +294,10 @@ print join("\t", '#miRNA', @sample, (map { $_.'.norm' } @sample), @DE_fold_heade
 foreach my $art (@tmp) {
     my $mirna = $art->[0];
     #print join("\t", @{$art}, map { sprintf("%.3f", $_) } @{ $mirnaq{$mirna} }{@DE_qvalue}),"\n";
+    foreach my $x (@{ $mirnaq{$mirna} }{@DE_qvalue}) {
+        die ">>>>$mirna" unless (defined $x);
+    }
+
     print join("\t", @{$art}, map { sprintf("%.3f",$_) } @{ $mirnaq{$mirna} }{@DE_qvalue}),"\n";
 }
 

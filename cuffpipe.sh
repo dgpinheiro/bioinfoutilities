@@ -26,7 +26,7 @@ if [ ! ${aligner} ]
 then
 	aligner="tophat2"
 else
-	if [ ! ${aligner} == "tophat2" ] && [ ! ${aligner} == "star" ] && [ ! ${aligner} == "bbmap" ]
+	if [ ! ${aligner} == "tophat2" ] && [ ! ${aligner} == "star" ] && [ ! ${aligner} == "bbmap" ] && [ ! ${aligner} == "hisat2" ]
 	then
 		echo "Wrong aligner (${aligner})"
 		exit
@@ -177,6 +177,12 @@ fi
 echo " * Using Output Directory ${basedir_out}"
 
 
+biogroupsin=$5
+analysissfx=$6
+if [ ! ${analysissfx} ]; then
+	analysissfx=""
+fi
+
 # fastx_out - caminho para o diretório de saída do fastx_trimmer
 fastx_out="${basedir_out}/raw2"
 
@@ -255,8 +261,19 @@ then
 
 	echo "* Gene structure statistics from current genome reference annotation (introntab.pl)"
 	if [ ! -e "${basedir_out}/introntab/genome_annotation_stats.txt" ]; then
-		echo "   Running introntab.pl"
-		introntab.pl --format ${refgff_format} < ${refgff} > ${basedir_out}/introntab/genome_annotation_stats.txt
+		echo "   Running introntab.pl based on ${refgff_format}"
+		
+		if [ ${refgff_format} == "gtf" ]; then
+			gtfbn=`basename ${refgff} .gtf`
+			if [ ! -e "${basedir_out}/introntab/${gtfbn}.gff" ]; then
+				echo "      Converting gtf to gff for introntab.pl"
+				gtf2gff3 ${refgff} 2> /dev/null > ${basedir_out}/introntab/${gtfbn}.gff 
+			fi
+			introntab.pl --format gff ${basedir_out}/introntab/${gtfbn}.gff > ${basedir_out}/introntab/genome_annotation_stats.txt
+		else
+			introntab.pl --format ${refgff_format} < ${refgff} > ${basedir_out}/introntab/genome_annotation_stats.txt
+		fi
+		
 	fi
 
 	max_intron_size=`cut -f 10 ${basedir_out}/introntab/genome_annotation_stats.txt | perl -lane 'next if (($.<=3)||($_=~/^#/)); my @isize=split(/,/, $_);  foreach my $s ( @isize ) { print $s; } ' | nsort -n | awk '{all[NR] = $0} END{print all[int(NR*0.75 - 0.5)]}' `
@@ -267,9 +284,14 @@ then
 		min_intron_size=`grep 'Genome_size:' /tmp/out | perl -lane '$_=~/(\d+)/; print $1;' `;
 	fi
 
-	echo "   Max intron size: ${max_intron_size}"
-	echo "   Min intron size: ${min_intron_size}"
-
+	if [ ${max_intron_size} ] && [ ${min_intron_size} ]; then
+		echo "   Max intron size: ${max_intron_size}"
+		echo "   Min intron size: ${min_intron_size}"
+	else
+		echo "   Not found intron size (PLEASE! Check introntab.pl output)"
+		exit
+	fi
+	
 	echo "* Creating directories (alignments' step)"
 
 	# Criando diretórios para as saídas dos programas que serão utilizados a seguir
@@ -290,15 +312,19 @@ then
 		if [ ! -e "${fastx_out}/${bs}_R1.fastq" ]  
 		then
 			techreps=(`ls ${input}/${bs}_T*_R1.fastq`)
-			if ( ((${#techreps[@]} > 1)) && ((${#lenvar[@]} > 1)) )
+			if ( ((${#techreps[@]} >= 1)) || ((${#lenvar[@]} > 1)) )
 			then
-				if ((${#techreps[@]} > 1))
+				if ((${#techreps[@]} >= 1))
 				then
 					echo "* Trimming ${bs} by minimum length (${min}) and merging ${#techreps[@]} technical replicates of ${bs} [R1] ..."
 				else
 					echo "* Trimming ${bs} by minimum length (${min}) [R1] ..."
 				fi
-				cat ${input}/${bs}_T*_R1.fastq | fastx_trimmer -l ${min} -Q 33 > ${fastx_out}/${bs}_R1.fastq
+				rm -f ${fastx_out}/${bs}_R1.fastq
+				for trinr1 in ${input}/${bs}_T*_R1.fastq; do
+					trbn=`basename ${trinr1} _R1.fastq`
+					cat ${trinr1} | fastx_trimmer -l ${min} -Q 33 | awk -v TRBN="${trbn}" '{print (NR%4 == 1) ? "@" TRBN "_" ++i : ((NR%4 == 3) ? "+" : $0) }' >> ${fastx_out}/${bs}_R1.fastq
+				done
 			else
 				echo "* Linking ${bs} [R1] ..."
 				link1=$(readlink -f ${input}/${bs}_T1_R1.fastq)
@@ -312,15 +338,18 @@ then
 			techreps=(`ls ${input}/${bs}_T*_R2.fastq 2>/dev/null`)
 			if ((${#techreps[@]} > 0))
 			then
-				if ( ((${#techreps[@]} > 1)) && ((${#lenvar[@]} > 1)) )
+				if ( ((${#techreps[@]} >= 1)) || ((${#lenvar[@]} > 1)) )
 				then
-					if ((${#techreps[@]} > 1))
+					if ((${#techreps[@]} >= 1))
 					then
 						echo "* Trimming ${bs} by minimum length (${min}) and merging ${#techreps[@]} technical replicates of ${bs} [R2] ..."
 					else
 						echo "* Trimming ${bs} by minimum length (${min}) [R2] ..."
 					fi
-					cat ${input}/${bs}_T*_R2.fastq | fastx_trimmer -l ${min} -Q 33 > ${fastx_out}/${bs}_R2.fastq
+					for trinr2 in ${input}/${bs}_T*_R2.fastq; do
+						trbn=`basename ${trinr2} _R2.fastq`
+						cat ${trinr2} | fastx_trimmer -l ${min} -Q 33 | awk -v TRBN="${trbn}" '{print (NR%4 == 1) ? "@" TRBN "_" ++i : ((NR%4 == 3) ? "+" : $0) }' >> ${fastx_out}/${bs}_R2.fastq
+					done
 				else
 					echo "* Linking ${bs} [R2] ..."
 					link2=$(readlink -f ${input}/${bs}_T1_R2.fastq)
@@ -329,7 +358,83 @@ then
 			fi
 		fi
 	done
-
+	
+	function hisat2_alignment_step {
+		local samplename=$1
+		local step=$2
+		local alignX_sample_out=$3
+		local alignL_sample_out=$4
+		local fastqin=$5
+		local fastq2in=$6
+		local fastquin=$7
+		
+		#local nonovel=" --no-temp-splicesite "
+		local nonovel=""
+		local nomixed=" --no-mixed "
+		local nodiscordant=" --no-discordant "
+		local nosoftclip=" --no-softclip "
+		if [ ${step} == 3 ]
+		then
+			nomixed=""
+			nonovel=""
+			nodiscordant=""
+			nosoftclip=""
+		fi
+		
+		mkdir -p ${alignX_sample_out}
+		
+		local cmdhisat2="hisat2 --max-seeds 100 ${nomixed} ${nonovel} ${nodiscordant} ${nosoftclip} --threads=${num_threads} --dta-cufflinks --maxins 600 --min-intronlen  ${min_intron_size} --max-intronlen ${max_intron_size} --novel-splicesite-outfile ${alignX_sample_out}/junctions.junc "
+		
+		if [ -s "${alignL_sample_out}/all_junctions.junc" ]
+		then   
+			cmdhisat2="${cmdhisat2} --novel-splicesite-infile ${alignL_sample_out}/all_junctions.junc "
+		fi
+		
+		cmdhisat2="${cmdhisat2} -x ${refhs2idx}"
+		
+		if [ -e ${fastq2in} ] 
+		then
+			cmdhisat2="${cmdhisat2} -1 ${fastqin} -2 ${fastq2in}"
+			if [ ${fastquin} ]; then
+				cmdhisat2="${cmdhisat2} -U ${fastquin}"
+			fi
+		else
+			cmdhisat2="${cmdhisat2} -U ${fastqin}"
+		fi
+		
+		cmdhisat2="${cmdhisat2} 2>${alignX_sample_out}/${samplename}.hisat2.log | samtools view --threads ${num_threads} -F 4 -b - > ${alignX_sample_out}/accepted_hits.bam 2> ${alignX_sample_out}/${samplename}.samtools.log.txt"
+		
+		eval ${cmdhisat2}
+		
+		if [ -e "${alignX_sample_out}/junctions.junc" ]; then
+			cat ${alignX_sample_out}/junctions.junc | nsort -u > ${alignX_sample_out}/all_junctions.junc
+		fi
+		
+		samtools view --threads ${num_threads} -F 4 ${alignX_sample_out}/accepted_hits.bam | cut -f 1 | nsort -u > ${alignX_sample_out}/${samplename}.mapped.txt
+		
+		cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fastqin} > ${alignX_sample_out}/${samplename}.unmapped_R1.fastq
+		
+		if [ -e ${fastq2in} ]
+		then
+			cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fastq2in} > ${alignX_sample_out}/${samplename}.unmapped_R2.fastq
+			if [ ${fastquin} ]
+			then
+				for fquin in $(echo "${fastquin}" | tr "," "\n"); do
+					if [ -e ${fquin} ]; then
+						if [[ ${fquin} =~ "prinseq_1_singletons" ]]; then
+							cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fquin} > ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+						elif [[ ${fquin} =~ "prinseq_2_singletons" ]]; then
+							cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fquin} > ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+						else
+							cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fquin} > ${alignX_sample_out}/${samplename}.unmapped_U.fastq
+						fi
+					fi
+				done
+			fi
+		fi
+		
+	}
+	
 	function tophat_alignment_step {
 		local samplename=$1
 		local step=$2
@@ -340,13 +445,15 @@ then
 		
 		local nonovel=" --no-novel-juncs "
 		local nomixed=" --no-mixed "
+		local nodiscordant=" --no-discordant "
 		if [ ${step} == 3 ]
 		then
 			nomixed=""
 			nonovel=""
+			nodiscordant=""
 		fi
 		
-		local cmdtophat2="tophat2 --keep-tmp ${nomixed} ${nonovel} --num-threads=${num_threads} --library-type=fr-unstranded --prefilter-multihits --coverage-search --max-multihits 10 --b2-very-sensitive --min-coverage-intron ${min_intron_size} --max-coverage-intron ${max_intron_size} --microexon-search  --max-deletion-length 3 --max-insertion-length 3 --read-mismatches 2 --min-anchor $((min/3)) --splice-mismatches 0 --min-intron-length ${min_intron_size} --max-intron-length ${max_intron_size} --min-segment-intron ${min_intron_size} --max-segment-intron ${max_intron_size} --segment-mismatches=2 --segment-length=$((min/2)) --output-dir ${alignX_sample_out}/ --transcriptome-index ${tophat_transcriptome_index} -G ${refgff}"
+		local cmdtophat2="tophat2 ${nomixed} ${nonovel} ${nodiscordant} --num-threads=${num_threads} --library-type=fr-unstranded --prefilter-multihits --coverage-search --max-multihits 10 --b2-very-sensitive --min-coverage-intron ${min_intron_size} --max-coverage-intron ${max_intron_size} --microexon-search  --max-deletion-length 3 --max-insertion-length 3 --read-mismatches 2 --min-anchor $((min/3)) --splice-mismatches 0 --min-intron-length ${min_intron_size} --max-intron-length ${max_intron_size} --min-segment-intron ${min_intron_size} --max-segment-intron ${max_intron_size} --segment-mismatches=2 --segment-length=$((min/2)) --output-dir ${alignX_sample_out}/ --transcriptome-index ${tophat_transcriptome_index} -G ${refgff}"
 		
 		if [ -s "${alignL_sample_out}/all_junctions.junc" ]
 		then   
@@ -355,7 +462,6 @@ then
 		
 		cmdtophat2="${cmdtophat2} ${refbt2idx} ${fastqin}"
 		
-		local unmapped_second_end_fastq=""
 		if [ -e ${fastq2in} ] 
 		then
 			cmdtophat2="${cmdtophat2} ${fastq2in}"
@@ -369,25 +475,40 @@ then
 		then
 			bed_to_juncs < ${alignX_sample_out}/junctions.bed > ${alignX_sample_out}/junctions.junc 2> /dev/null
 		else
-			touch ${alignX_sample_out}/junctions.junc				
+			touch ${alignX_sample_out}/junctions.junc
 		fi
 		
 		cat ${alignX_sample_out}/junctions.junc | nsort -u > ${alignX_sample_out}/all_junctions.junc
-				
+		
+		samtools view --threads ${num_threads} -F 4 ${alignX_sample_out}/accepted_hits.bam | cut -f 1 | nsort -u > ${alignX_sample_out}/${samplename}.mapped.txt
+		
+		for fq1in in $(echo "${fastqin}" | tr "," "\n"); do
+			if [[ ${fq1in} =~ "prinseq_1_singletons" ]]; then
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+			elif [[ ${fq1in} =~ "prinseq_2_singletons" ]]; then
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+			else
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_R1.fastq
+			fi
+		
+		done
+		
 		if [ -e ${fastq2in} ]
 		then
-			samtools view -f 65 ${alignX_sample_out}/accepted_hits.bam | cut -f 1 | nsort -u > ${alignX_sample_out}/accepted_hits.txt
-			cat ${alignX_sample_out}/accepted_hits.txt | pullseq -e -N -i ${fastqin} > ${alignX_sample_out}/${samplename}.unmapped_R1.fastq
-			cat ${alignX_sample_out}/accepted_hits.txt | pullseq -e -N -i ${fastq2in} > ${alignX_sample_out}/${samplename}.unmapped_R2.fastq
-		else
-			samtools view ${alignX_sample_out}/accepted_hits.bam | cut -f 1 | nsort -u > ${alignX_sample_out}/accepted_hits.txt
-			cat ${alignX_sample_out}/accepted_hits.txt | pullseq -e -N -i ${fastqin} > ${alignX_sample_out}/${samplename}.unmapped_R1.fastq
+			for fq2in in $(echo "${fastq2in}" | tr "," "\n"); do 
+				if [[ ${fq2in} =~ "prinseq_1_singletons" ]]; then
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+				elif [[ ${fq2in} =~ "prinseq_2_singletons" ]]; then
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+				else
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_R2.fastq
+				fi
+			done
 		fi
 		
-		
-		rm -fr ${alignX_sample_out}/tmp/
+		#rm -fr ${alignX_sample_out}/tmp/
 	}
-
+	
 	function bbmap_alignment_step {
 		samplename=$1
 		step=$2
@@ -401,7 +522,7 @@ then
 		# (4) read unmapped
 		samtools_accepted=" -F 4 " 
 		samtools_unmapped=" -f 4 "
-
+		
 		if [ -e ${fastq2in} ] 
 		then
 			bbmap_fastqin2="in2=${fastq2in}"
@@ -414,13 +535,11 @@ then
 				c=$((c+1))
 			done
 			
-			unmapped_second_end_fastq="SECOND_END_FASTQ=${alignX_sample_out}/${samplename}.unmapped_R2.fastq"
-
 			# (2) read mapped in proper pair 
 			samtools_accepted=" -f 2 "
 			samtools_unmapped=" -F 2 "
 		fi
-
+		
 		cmdbbmap="bbwrap.sh -Xmx22g path=${refbbmapidx} build=1 in=${fastqin} ${bbmap_fastqin2} out=${alignX_sample_out}/all_hits.sam ambiguous=all trimq=0 mintrimlength=100 vslow=t strictmaxindel=t maxindel=3 minid=0.95 k=9 xstag=t mdtag=t nhtag=t xmtag=t amtag=t nmtag=t stoptag=t lengthtag=t idtag=t inserttag=t scoretag=t timetag=t boundstag=t xs=us sam=1.3 &> ${alignX_sample_out}/${samplename}.bbmap.log append=t"
 		
 		eval ${cmdbbmap}
@@ -431,23 +550,40 @@ then
 			samtools_accepted=" -F 4 "
 			samtools_unmapped=" -f 4 "
 		fi
-			
-		samtools view -b -S ${samtools_accepted} ${alignX_sample_out}/all_hits.sam > ${alignX_sample_out}/accepted_hits.bam 2> /dev/null
-		samtools view -b -S ${samtools_unmapped} ${alignX_sample_out}/all_hits.sam > ${alignX_sample_out}/unmapped.bam 2> /dev/null
-
+		
+		samtools view --threads ${num_threads} -b -S ${samtools_accepted} ${alignX_sample_out}/all_hits.sam > ${alignX_sample_out}/accepted_hits.bam 2> /dev/null
+		samtools view --threads ${num_threads} -b -S ${samtools_unmapped} ${alignX_sample_out}/all_hits.sam > ${alignX_sample_out}/unmapped.bam 2> /dev/null
+		
 		rm -f ${alignX_sample_out}/all_hits.sam 
 		
-		picard_input="INPUT=${alignX_sample_out}/unmapped.bam"
+		samtools view --threads ${num_threads} -F 4 ${alignX_sample_out}/accepted_hits.bam | cut -f 1 | nsort -u > ${alignX_sample_out}/${samplename}.mapped.txt
+		
+		for fq1in in $(echo "${fastqin}" | tr "," "\n"); do
+			if [[ ${fq1in} =~ "prinseq_1_singletons" ]]; then
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+			elif [[ ${fq1in} =~ "prinseq_2_singletons" ]]; then
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+			else
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_R1.fastq
+			fi
+		
+		done
+		
 		if [ -e ${fastq2in} ]
 		then
-			picard 10g FixMateInformation VALIDATION_STRINGENCY=LENIENT I=${alignX_sample_out}/unmapped.bam O=${alignX_sample_out}/unmapped_fixed.bam &> ${alignX_sample_out}/unmapped_fixed.log
-			picard_input="INPUT=${alignX_sample_out}/unmapped_fixed.bam"
+			for fq2in in $(echo "${fastq2in}" | tr "," "\n"); do 
+				if [[ ${fq2in} =~ "prinseq_1_singletons" ]]; then
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+				elif [[ ${fq2in} =~ "prinseq_2_singletons" ]]; then
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+				else
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_R2.fastq
+				fi
+			done
 		fi
-
-		picard 10g SamToFastq FASTQ=${alignX_sample_out}/${samplename}.unmapped_R1.fastq ${unmapped_second_end_fastq} ${picard_input} VALIDATION_STRINGENCY=LENIENT INCLUDE_NON_PF_READS=TRUE &> ${alignX_sample_out}/${samplename}.unmapped.SamToFastq.log.txt
-
+		
 	}
-
+	
 	function star_alignment_step {
 		samplename=$1
 		step=$2
@@ -468,7 +604,6 @@ then
 			# (2) read mapped in proper pair 
 			samtools_accepted=" -f 2 "
 			samtools_unmapped=" -F 2 "
-			unmapped_second_end_fastq="SECOND_END_FASTQ=${alignX_sample_out}/${samplename}.unmapped_R2.fastq"
 		fi
 		
 		cmdstar="STAR --limitBAMsortRAM 20000000000 --runThreadN ${num_threads} --outFilterMultimapNmax 10 --outFilterMismatchNmax 2 --outFilterMismatchNoverLmax 0.1 --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outSJfilterReads Unique  --alignSJoverhangMin 35 --alignEndsType EndToEnd --alignIntronMin 5000000 --outSAMstrandField intronMotif --outSAMattributes All --outSAMprimaryFlag AllBestScore --bamRemoveDuplicatesType UniqueIdentical --outSAMtype BAM Unsorted --sjdbOverhang 100 --sjdbGTFfile ${refgff} --genomeDir ${refstaridx} --readFilesIn ${fastqin} ${star_fastq2in} --outFileNamePrefix ${alignX_sample_out}/ --outFilterMatchNminOverLread 0.5 --outFilterScoreMinOverLread 0.5 --alignMatesGapMax 600 --outSAMunmapped Within --chimOutType WithinBAM --chimSegmentMin 50"
@@ -491,7 +626,6 @@ then
 		fi
 		
 		cat ${alignL_sample_out}/all_junctions.junc ${alignX_sample_out}/junctions.junc | nsort -u > ${alignX_sample_out}/all_junctions.junc
-			
 		
 		if [ ${step} == 3 ]
 		then
@@ -500,23 +634,39 @@ then
 			samtools_unmapped=" -f 4 "
 		fi
 		
-		samtools view -b ${samtools_accepted} ${alignX_sample_out}/Aligned.out.bam > ${alignX_sample_out}/accepted_hits.bam 2> /dev/null
-		samtools view -h ${samtools_unmapped} ${alignX_sample_out}/Aligned.out.bam | fixPrimaryInformation.pl 2> ${alignX_sample_out}/fixPrimaryInformation.log.txt | samtools view -b - > ${alignX_sample_out}/unmapped.bam 2> /dev/null
-
-		picard_input="INPUT=${alignX_sample_out}/unmapped.bam"
+		samtools view --threads ${num_threads} -b ${samtools_accepted} ${alignX_sample_out}/Aligned.out.bam > ${alignX_sample_out}/accepted_hits.bam 2> /dev/null
+		samtools view --threads ${num_threads} -h ${samtools_unmapped} ${alignX_sample_out}/Aligned.out.bam | fixPrimaryInformation.pl 2> ${alignX_sample_out}/fixPrimaryInformation.log.txt | samtools view -b - > ${alignX_sample_out}/unmapped.bam 2> /dev/null
+		
+		samtools view --threads ${num_threads} -F 4 ${alignX_sample_out}/accepted_hits.bam | cut -f 1 | nsort -u > ${alignX_sample_out}/${samplename}.mapped.txt
+		
+		for fq1in in $(echo "${fastqin}" | tr "," "\n"); do
+			if [[ ${fq1in} =~ "prinseq_1_singletons" ]]; then
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+			elif [[ ${fq1in} =~ "prinseq_2_singletons" ]]; then
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+			else
+				cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq1in} > ${alignX_sample_out}/${samplename}.unmapped_R1.fastq
+			fi
+		
+		done
+		
 		if [ -e ${fastq2in} ]
 		then
-			picard 10g FixMateInformation VALIDATION_STRINGENCY=LENIENT I=${alignX_sample_out}/unmapped.bam O=${alignX_sample_out}/unmapped_fixed.bam &> ${alignX_sample_out}/unmapped_fixed.log
-			picard_input="INPUT=${alignX_sample_out}/unmapped_fixed.bam"
+			for fq2in in $(echo "${fastq2in}" | tr "," "\n"); do 
+				if [[ ${fq2in} =~ "prinseq_1_singletons" ]]; then
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_S1.fastq
+				elif [[ ${fq2in} =~ "prinseq_2_singletons" ]]; then
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_S2.fastq
+				else
+					cat ${alignX_sample_out}/${samplename}.mapped.txt | cut -f 1 | nsort -u | pullseq -e -N -i ${fq2in} >> ${alignX_sample_out}/${samplename}.unmapped_R2.fastq
+				fi
+			done
 		fi
-
-		picard 10g SamToFastq FASTQ=${alignX_sample_out}/${samplename}.unmapped_R1.fastq ${unmapped_second_end_fastq} ${picard_input} VALIDATION_STRINGENCY=LENIENT INCLUDE_NON_PF_READS=TRUE &> ${alignX_sample_out}/${samplename}.unmapped.SamToFastq.log.txt
-
+	
 	}
-
-
+	
 	echo "* Pre-processing:"
-
+	
 	for fastq in `ls ${fastx_out}/*_R1.fastq`; do
 		
 		# fqname - string com o nome do arquivo fastq
@@ -524,7 +674,7 @@ then
 		fqname=`basename ${fastq} _R1.fastq`
 		
 		mate_fastq=`echo ${fastq} | sed 's/_R1.fastq$/_R2.fastq/'`
-
+		
 		echo "   ${fqname} ..."	
 		
 		# Execução do align2 para obter o alinhamento de cada réplica biológica em relação ao genoma
@@ -548,8 +698,12 @@ then
 			elif [ ${aligner} == "star" ]; then
 
 				star_alignment_step ${fqname} 0 ${align0_sample_out} ${align0_sample_out} ${fastq} ${mate_fastq}
+			
+			elif [ ${aligner} == "hisat2" ]; then
+
+				hisat2_alignment_step ${fqname} 0 ${align0_sample_out} ${align0_sample_out} ${fastq} ${mate_fastq}
 			else
-				echo "Not found aligner (${aligner})"
+				echo "Wrong aligner (${aligner})"
 				exit
 			fi
 
@@ -604,9 +758,12 @@ then
 
 			elif [ ${aligner} == "star" ]; then
 		
-				star_alignment_step ${fqname} 1 ${align1_sample_out} ${align0_sample_out} "${scythe_out}/${fqname}.scythe_R1.fastq" "${scythe_out}/${fqname}.scythe_R2.fastq"		
+				star_alignment_step ${fqname} 1 ${align1_sample_out} ${align0_sample_out} "${scythe_out}/${fqname}.scythe_R1.fastq" "${scythe_out}/${fqname}.scythe_R2.fastq"
+			elif [ ${aligner} == "hisat2" ]; then
+		
+				hisat2_alignment_step ${fqname} 1 ${align1_sample_out} ${align0_sample_out} "${scythe_out}/${fqname}.scythe_R1.fastq" "${scythe_out}/${fqname}.scythe_R2.fastq"	
 			else 
-				echo "Not found aligner (${aligner})"
+				echo "Wrong aligner (${aligner})"
 				exit
 			fi
 		fi
@@ -657,7 +814,11 @@ then
 				
 			elif [ ${aligner} == "star" ]; then
 				
-				star_alignment_step ${fqname} 2 ${align2_sample_out} ${align1_sample_out} "${cutadapt_out}/${fqname}.scythe.cutadapt_R1.fastq" "${cutadapt_out}/${fqname}.scythe.cutadapt_R2.fastq"			
+				star_alignment_step ${fqname} 2 ${align2_sample_out} ${align1_sample_out} "${cutadapt_out}/${fqname}.scythe.cutadapt_R1.fastq" "${cutadapt_out}/${fqname}.scythe.cutadapt_R2.fastq"
+			
+			elif [ ${aligner} == "hisat2" ]; then
+				
+				hisat2_alignment_step ${fqname} 2 ${align2_sample_out} ${align1_sample_out} "${cutadapt_out}/${fqname}.scythe.cutadapt_R1.fastq" "${cutadapt_out}/${fqname}.scythe.cutadapt_R2.fastq"
 		
 			else 
 				echo "Not found aligner (${aligner})"
@@ -718,7 +879,33 @@ then
 
 				tophat_alignment_step ${fqname} 3 ${align3_sample_out} ${align2_sample_out} ${tophat_fastq_in} "${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_2.fastq"
 
-			
+			elif [ ${aligner} == "hisat2" ]
+			then
+				
+				hisat2_fastq_in=""
+				hisat2_fastq_u=""
+				if [ -e "${prinseq_out}/${fqname}.scythe.cutadapt.prinseq.fastq" ]
+				then
+					hisat2_fastq_in="${prinseq_out}/${fqname}.scythe.cutadapt.prinseq.fastq"
+				elif [ -e "${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_1.fastq" ]
+				then
+					hisat2_fastq_in="${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_1.fastq"
+					if [ -e "${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_1_singletons.fastq" ]; then
+						hisat2_fastq_u="${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_1_singletons.fastq"
+					fi
+					if [ -e "${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_2_singletons.fastq" ]; then
+						if [ ${hisat2_fastq_u} ]; then
+							hisat2_fastq_u="${hisat2_fastq_u},${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_2_singletons.fastq"
+						else
+							hisat2_fastq_u="${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_2_singletons.fastq"
+						fi
+					fi
+				else
+					echo "Missing input file for hisat2 alignment step 3"
+				fi
+
+				hisat2_alignment_step ${fqname} 3 ${align3_sample_out} ${align2_sample_out} ${hisat2_fastq_in} "${prinseq_out}/${fqname}.scythe.cutadapt.prinseq_2.fastq" ${hisat2_fastq_u}
+
 			elif [ ${aligner} == "bbmap" ]; then
 				
 				bbmap_fastq_in=""
@@ -769,13 +956,13 @@ then
 			
 				if [ ! -e "${align3_sample_out}/header.sam" ]
 				then 
-					samtools view -H ${align3_sample_out}/accepted_hits.bam > ${align3_sample_out}/header.sam 2> /dev/null
+					samtools view --threads ${num_threads} -H ${align3_sample_out}/accepted_hits.bam > ${align3_sample_out}/header.sam 2> /dev/null
 				fi
 				
 				if [ -e "${align3_sample_out}/singleton1/accepted_hits.bam" ]; then
 					mv ${align3_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.tmp
 
-					bam_merge -Q --sam-header ${align3_sample_out}/header.sam ${align3_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.tmp ${align3_sample_out}/singleton1/accepted_hits.bam 2> /dev/null
+					samtools merge --threads ${num_threads} -h ${align3_sample_out}/header.sam ${align3_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.tmp ${align3_sample_out}/singleton1/accepted_hits.bam 2> /dev/null
 					
 					rm -f ${align3_sample_out}/accepted_hits.tmp
 				fi
@@ -783,7 +970,7 @@ then
 				if [ -e "${align3_sample_out}/singleton2/accepted_hits.bam" ]; then
 					mv ${align3_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.tmp
 
-					bam_merge -Q --sam-header ${align3_sample_out}/header.sam ${align3_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.tmp ${align3_sample_out}/singleton2/accepted_hits.bam 2> /dev/null
+					samtools merge --threads ${num_threads} -h ${align3_sample_out}/header.sam ${align3_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.tmp ${align3_sample_out}/singleton2/accepted_hits.bam 2> /dev/null
 					
 					rm -f ${align3_sample_out}/accepted_hits.tmp
 				fi
@@ -798,16 +985,16 @@ then
 
 		if [ ! -e "${finalalign_sample_out}/accepted_hits.bam" ]
 		then
-			echo "      Merging alignments of ${fqname} against genome (bam_merge) ..."
+			echo "      Merging alignments of ${fqname} against genome (samtools) ..."
 
 			if [ ! -e "${finalalign_sample_out}/header.sam" ]
 			then 
-				samtools view -H ${align0_sample_out}/accepted_hits.bam > ${finalalign_sample_out}/header.sam 2> /dev/null
+				samtools view --threads ${num_threads} -H ${align0_sample_out}/accepted_hits.bam > ${finalalign_sample_out}/header.sam 2> /dev/null
 			fi
 
-			bam_merge -Q --sam-header ${finalalign_sample_out}/header.sam ${finalalign_sample_out}/accepted_hits.bam ${align0_sample_out}/accepted_hits.bam ${align1_sample_out}/accepted_hits.bam ${align2_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.bam 2> /dev/null
+			samtools merge --threads ${num_threads} -h ${finalalign_sample_out}/header.sam ${finalalign_sample_out}/accepted_hits.bam ${align0_sample_out}/accepted_hits.bam ${align1_sample_out}/accepted_hits.bam ${align2_sample_out}/accepted_hits.bam ${align3_sample_out}/accepted_hits.bam 2> /dev/null
 
-			samtools sort ${finalalign_sample_out}/accepted_hits.bam ${finalalign_sample_out}/accepted_hits_sorted
+			samtools sort --threads ${num_threads} ${finalalign_sample_out}/accepted_hits.bam -o ${finalalign_sample_out}/accepted_hits_sorted.bam
 
 			mv ${finalalign_sample_out}/accepted_hits_sorted.bam ${finalalign_sample_out}/accepted_hits.bam
 
@@ -829,10 +1016,10 @@ if [ ${execopt} == "diff" ] || [ ${execopt} == "all" ]; then
 	cuffquant_out="${basedir_out}/cuffquant"
 
 	# cuffnorm_out - caminho para o diretório de saída do cuffnorm
-	cuffnorm_out="${basedir_out}/cuffnorm"
+	cuffnorm_out="${basedir_out}/cuffnorm${analysissfx}"
 
 	# cuffdiff_out - caminho para o diretório de saída do cuffdiff
-	cuffdiff_out="${basedir_out}/cuffdiff"
+	cuffdiff_out="${basedir_out}/cuffdiff${analysissfx}"
 	# Execução do cuffmerge para fusionar os transcriptomas gerados em um transcriptoma referência
 	# Será executado caso ainda não tenha o arquivo de saída esperado (merged.gtf)
 
@@ -899,19 +1086,47 @@ if [ ${execopt} == "diff" ] || [ ${execopt} == "all" ]; then
 		
 		if [ ! -e "${cuffquant_out}/${bs}/abundances.cxb" ]
 		then
-			cuffquant --library-type fr-unstranded --multi-read-correct --frag-bias-correct ${refgenomefa} ${cuffmerge_out}/merged.gtf ${finalalign_out}/${bs}/accepted_hits.bam -o ${cuffquant_out}/${bs} --max-bundle-frags 999999999 &> ${cuffquant_out}/${bs}.log.txt
+			cuffquant --num-threads ${num_threads} --library-type fr-unstranded --multi-read-correct --frag-bias-correct ${refgenomefa} ${cuffmerge_out}/merged.gtf ${finalalign_out}/${bs}/accepted_hits.bam -o ${cuffquant_out}/${bs} --max-bundle-frags 999999999 &> ${cuffquant_out}/${bs}.log.txt
 		fi
 		
 	done;
+	
+	declare -A outlier
+	if [ ${outliers_file} ]; then
+		if [ -e ${outliers_file} ]; then
 
+			echo "Loading outliers ..."
+			
+			for o in $(<outliers.txt); do
+				echo "      Outlier: ${o}"
+				outlier[${o}]=${o}
+			done
+		else
+			echo "Error! Outliers file doesn't exist"
+			exit
+		fi
+	fi
+	
+	if [ ${biogroupsin} ]; then
+		biogroups=(${biogroupsin//,/ })
+	fi
 	biogroupscxb=()
 	echo "Checking cxb files:"
 	for bg in ${biogroups[@]}; do
 		
 		echo "	${bg} ..."
-		
-		cxblist=(`find ${cuffquant_out}/ -name abundances.cxb | grep "${bg}" | sort`)
+			
+		tmp=(`find ${cuffquant_out}/ -name abundances.cxb | grep "${bg}" | sort`)
 		# aqui temos que usar o asterisco ("*") para expandir o conteúdo de cxblist pois queremos apenas uma palavra, separada pela variável especial IFS e não múltiplas palavras como quando usamos o arroba ("@")
+		
+		cxblist=()
+		
+		for i in ${tmp[@]}; do
+			dn=`basename $(dirname ${i})`;
+			if [ ! ${outlier[${dn}]} ]; then
+				cxblist=( ${cxblist[@]} ${i} )
+			fi
+		done
 		
 		biogroupscxb=(${biogroupscxb[@]} $(IFS=, ; echo "${cxblist[*]}"))
 	done;
@@ -925,7 +1140,7 @@ if [ ${execopt} == "diff" ] || [ ${execopt} == "all" ]; then
 
 	# Execução do cuffdiff para obter as estimativas de expressão gênica diferencial
 	# caso não tenha sido executado
-	if [ !  -e "${cuffdiff_out}/run.info" ]
+	if [ ! -e "${cuffdiff_out}/run.info" ]
 	then
 		echo "* Estimating Differential Expression (cuffdiff) among groups:" "${biogroups[*]}" 
 		cuffdiff --num-threads ${num_threads} --library-type fr-unstranded --multi-read-correct --frag-bias-correct ${refgenomefa} --library-norm-method geometric --compatible-hits-norm --output-dir ${cuffdiff_out} ${cuffmerge_out}/merged.gtf ${biogroupscxb[@]} --FDR  0.05 --labels $(IFS=, ; echo "${biogroups[*]}") --max-bundle-frags 999999999 &> ${cuffdiff_out}/cuffdiff.log
