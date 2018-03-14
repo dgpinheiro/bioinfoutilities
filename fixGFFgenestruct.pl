@@ -131,7 +131,7 @@ while(<$fhin>) {
 	if ($_=~/^#/) { 
 		print $_,"\n"; 
 	} else { 
-		if ($F[2] eq "gene") { 
+		if (($F[2] eq "gene")||($F[2] eq "pseudogene")) { 
 			my ($ID)=$F[8]=~/ID=([^;]+)/; 
 			push(@{ $gene{$ID} }, [@F]); 
 		} elsif ( ($F[2]=~/[tr]RNA/) && ($F[8]!~/Parent/) ) { 
