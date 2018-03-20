@@ -42,14 +42,7 @@ else
         fi
 fi
 
-analysis_name="$2"
-if [ ! ${analysis_name} ]
-then   
-	echo "Missing analysis name. Please, check the second argument."
-        exit
-fi
-
-outdir="$3"
+outdir="$2"
 if [ ! ${outdir} ]
 then   
 	outdir="."
@@ -90,7 +83,7 @@ cutadapt_adapters_5p_R2_path="${adapt_barc_primer_path}/truseq_illumina_5p_adapt
 #
 
 # diretório a partir de onde o script será executado
-base_out="${outdir}/${analysis_name}"
+base_out="${outdir}"
 
 processed_out="${base_out}/processed"
 # fastqc_pre_out - caminho para o diretório onde serão criados os gráficos de qualidade dos dados brutos
