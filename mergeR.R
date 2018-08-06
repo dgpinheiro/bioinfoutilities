@@ -19,9 +19,13 @@ if("--help" %in% args) {
       --by.y=someValue         - by.y parameter
       --noh.x                  - file x doesn't have header
       --noh.y                  - file y doesn't have header
+      --all.x                  - all.x
+      --all.y                  - all.y
       --colname.x=someValues   - comma separated colnames for x
       --colname.y=someValues   - comma separated colnames for y              
       --out=someValue          - output file
+      --skip.x                 - skip n lines from x file
+      --skip.y                 - skip n files from y file
       --help                   - print this Help
 
       Example:
@@ -89,9 +93,29 @@ if(is.null(argsL[['noh.y']])) {
 	argsL[['noh.y']] = FALSE
 }
 
+if(is.null(argsL[['all.x']])) {
+	argsL[['all.x']] = FALSE
+} else {
+	argsL[['all.x']] = TRUE
+}
 
-x.df <- read.delim(argsL[['x']], header=argsL[['noh.x']], stringsAsFactors=FALSE)
-y.df <- read.delim(argsL[['y']], header=argsL[['noh.y']], stringsAsFactors=FALSE)
+if(is.null(argsL[['all.y']])) {
+	argsL[['all.y']] = FALSE
+} else {
+	argsL[['all.y']] = TRUE
+}
+
+if( is.null(argsL[['skip.x']])) {
+	argsL[['skip.x']] = 0
+}
+if( is.null(argsL[['skip.y']])) {
+	argsL[['skip.y']] = 0
+}
+
+
+x.df <- read.delim(argsL[['x']], header=argsL[['noh.x']], stringsAsFactors=FALSE,skip=argsL[['skip.x']], sep="\t")
+y.df <- read.delim(argsL[['y']], header=argsL[['noh.y']], stringsAsFactors=FALSE,skip=argsL[['skip.y']], sep="\t")
+
 
 if(! is.null(argsL[['colnames.x']])) {
 	colnames.x <- unlist(strsplit(argsL[['colnames.x']],","))
@@ -120,7 +144,7 @@ if(! is.null(argsL[['colnames.y']])) {
 #print(head(x.df))
 #print(head(y.df))
 
-xy.df <- merge(x=x.df, y=y.df, by.x=argsL[['by.x']], by.y=argsL[['by.y']])
+xy.df <- merge(x=x.df, y=y.df, by.x=argsL[['by.x']], by.y=argsL[['by.y']], all.x=argsL[['all.x']], all.y=argsL[['all.y']])
 
 write.table(xy.df, file=argsL[['out']], col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
 
