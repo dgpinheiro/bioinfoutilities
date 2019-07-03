@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 #              INGLÊS/ENGLISH
 #  This program is distributed in the hope that it will be useful,
@@ -150,7 +150,7 @@ for my $feat_object ($seq_object->get_SeqFeatures) {
                         $start = ( (($start-$extra)<1) ? 1 : $start-$extra );
                         $end = ( (($end+$extra)>$chrlen) ? $chrlen : $end+$extra );
 
-                        my $seq = Bio::Seq->new(  -display_id => (($GeneName ne '') ? $GeneName.':' : '').$GeneID,
+                        my $seq = Bio::Seq->new(  -display_id => $seq_object->display_id().':'.(($GeneName ne '') ? $GeneName.':' : '').$GeneID,
                                                   -seq =>$feat_object->entire_seq->subseq($start, $end));
                         
                         $seqout->write_seq($seq);
