@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile);
+my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile, $fastalinewidth);
 
 #Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -86,9 +86,11 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "if|informat=s"=>\$informat,
             "of|outformat=s"=>\$outformat,
             "p|prefix=s"=>\$prefix,
-            "l|listfile=s"=>\$listfile
+            "l|listfile=s"=>\$listfile,
+            "w|fastalinewidth=i"=>\$fastalinewidth
     ) or &Usage();
 
+$fastalinewidth||=100;    
 
 if ($level) {
     my %LEVEL = (   
@@ -139,7 +141,7 @@ if ($outfile) {
 use Bio::SeqIO;
 
 my $in  = Bio::SeqIO->new(-fh=>$fhin,  -format=>$informat);
-my $out = Bio::SeqIO->new(-fh=>$fhout, -format=>$outformat);
+my $out = Bio::SeqIO->new(-fh=>$fhout, -format=>$outformat, -width=>$fastalinewidth);
 
 my $fhlist = \*STDERR;
 if ($listfile) {
@@ -172,14 +174,15 @@ Usage
 
 Argument(s)
 
-        -h      --help      Help
-        -l      --level     Log level [Default: FATAL]
-        -i      --infile    Input file [Default: STDIN]
-        -o      --outfile   Output file [Default: STDOUT]
-        -if     --informat  Input file format [Default: FASTQ]
-        -of     --outformat Output file format [Default: FASTQ]
-        -p      --prefix    Prefix [Default: SEQ]
-        -l      --listfile  List file with old and new name
+        -h      --help              Help
+        -l      --level             Log level [Default: FATAL]
+        -i      --infile            Input file [Default: STDIN]
+        -o      --outfile           Output file [Default: STDOUT]
+        -if     --informat          Input file format [Default: FASTQ]
+        -of     --outformat         Output file format [Default: FASTQ]
+        -p      --prefix            Prefix [Default: SEQ]
+        -l      --listfile          List file with old and new name
+        -w      --fastalinewidth    FASTA line width
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
