@@ -20,7 +20,7 @@ if("--help" %in% args) {
       --help            	- print this Help
  
       Example:
-      ./run-edgeR.R --ignore=\"id,desc,other\" --groups=\"groups.txt\" --in=\"input.txt\" --out=\"./output\" 
+      ./run-edgeR.R --groups=\"groups.txt\" --in=\"input.txt\" --out=\"output.txt\" 
       
       Daniel Guariz Pinheiro
       FCAV/UNESP - Univ Estadual Paulista
@@ -32,7 +32,7 @@ if("--help" %in% args) {
  
 
 ## Parse arguments (we expect the form --arg=value)
-parseArgs <- function(x) strsplit(sub("^--", "", x), split="=")
+parseArgs <- function(x) strsplit(sub("^--", "", x), "=")
 argsDF <- as.data.frame(do.call("rbind", parseArgs(args)))
 argsL <- as.list(as.character(argsDF$V2))
 names(argsL) <- argsDF$V1
@@ -78,7 +78,7 @@ if ( ! file.exists(argsL[['groups']]) ) {
 
 ignorecols=c()
 if( ! is.null(argsL[['ignore']])) {
-	ignorecols=c(unlist(strsplit(argsL[['ignore']],split=",")))
+	ignorecols=c(unlist(strsplit(argsL[['ignore']],",")))
 }
 
 
@@ -123,6 +123,7 @@ group <- factor( g$group )
 
 y <- DGEList(counts=df[, g$name], group=group)
 
+
 design <- model.matrix(~0+group, data=y$samples)
 colnames(design) <- levels(y$samples$group)
 
@@ -148,6 +149,7 @@ all.comb <- apply(t(combn(levels(group),2)), 1, function(x) { paste( x ,collapse
 
 df.cpm <- as.data.frame(cpm(y, normalized.lib.sizes=TRUE))
 df.cpm[[idcol]] <- rownames(df.cpm)
+#save(list = ls(all=TRUE), file = "/tmp/lrt.RData")
 
 lrt <- list()
 for (c in 1:length(all.comb)) {
@@ -167,7 +169,7 @@ for (c in 1:length(all.comb)) {
 	}
 
 	for (col in ignorecols) {
-		dge.res[[col]] <- x[rownames(df.cpm), col]
+		dge.res[[col]] <- x[dge.res[[idcol]], col]
 	}
 	
 	
