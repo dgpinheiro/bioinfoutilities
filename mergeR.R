@@ -21,8 +21,8 @@ if("--help" %in% args) {
       --noh.y                  - file y doesn't have header
       --all.x                  - all.x
       --all.y                  - all.y
-      --colname.x=someValues   - comma separated colnames for x
-      --colname.y=someValues   - comma separated colnames for y              
+      --colnames.x=someValues  - comma separated colnames for x
+      --colnames.y=someValues  - comma separated colnames for y              
       --out=someValue          - output file
       --skip.x                 - skip n lines from x file
       --skip.y                 - skip n files from y file
