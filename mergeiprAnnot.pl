@@ -149,8 +149,8 @@ if ($kegg_db) {
     $dbh = DBI->connect("dbi:SQLite:dbname=$kegg_db","","");
 }
 
-$newname||=$choosen_analysis;
 $choosen_analysis||='IPR';
+$newname||=$choosen_analysis;
 
 open(TAB, "<", $tabfile) or $LOGGER->logdie($!);
 my $header_line=<TAB>;
