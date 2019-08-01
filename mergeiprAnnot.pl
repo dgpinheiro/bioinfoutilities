@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 #              INGLÊS/ENGLISH
 #  This program is distributed in the hope that it will be useful,
@@ -65,7 +65,6 @@ http://www.gnu.org/copyleft/gpl.html
 
 use strict;
 use warnings;
-use Readonly;
 use Getopt::Long;
 
 use vars qw/$LOGGER/;

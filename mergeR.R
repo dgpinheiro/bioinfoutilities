@@ -146,7 +146,6 @@ if(! is.null(argsL[['colnames.y']])) {
 #print(head(x.df))
 #print(head(y.df))
 
-
 xy.df <- merge(x=x.df, y=y.df, by.x=argsL[['by.x']], by.y=argsL[['by.y']], all.x=argsL[['all.x']], all.y=argsL[['all.y']])
 
 if(! is.null(argsL[['out.label']])) {
@@ -159,7 +158,6 @@ if(! is.null(argsL[['out.label']])) {
 	}
 	colnames(xy.df) <- out.label
 }
-
 
 write.table(xy.df, file=argsL[['out']], col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
 

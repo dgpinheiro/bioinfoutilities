@@ -15,15 +15,15 @@
 #  a Licença Pública Geral GNU para maiores detalhes.
 #  http://www.gnu.org/copyleft/gpl.html
 #
-#  Copyright (C) 2012  Universidade de São Paulo
+#  Copyright (C) 2019  Universidade Estadual Paulista "Júlio de Mesquita Filho"
 #
-#  Universidade de São Paulo
-#  Laboratório de Biologia do Desenvolvimento de Abelhas
-#  Núcleo de Bioinformática (LBDA-BioInfo)
+#  Universidade Estadual Paulista "Júlio de Mesquita Filho" (UNESP)
+#  Faculdade de Ciências Agrárias e Veterinárias (FCAV)
+#  Laboratório de Bioinformática (LB)
 #
 #  Daniel Guariz Pinheiro
 #  dgpinheiro@gmail.com
-#  http://zulu.fmrp.usp.br/bioinfo
+#  http://www.fcav.unesp.br
 #
 # $Id$
 
@@ -52,7 +52,7 @@
 
 Daniel Guariz Pinheiro E<lt>dgpinheiro@gmail.comE<gt>
 
-Copyright (c) 2012 Universidade de São Paulo
+Copyright (C) 2019 Universidade Estadual Paulista "Júlio de Mesquita Filho"
 
 =head1 LICENSE
 
@@ -67,8 +67,6 @@ use strict;
 use warnings;
 use Readonly;
 use Getopt::Long;
-use POSIX 'isatty';
-use FileHandle;
 
 use vars qw/$LOGGER/;
 
@@ -78,15 +76,14 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $nline);
+my ($level, $infile);
 
-my $fh;
-
+Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
-            "i|infile=s"=>\$infile,
-            "n|nline=s"=>\$nline
+            "i|infile=s"=>\$infile
     ) or &Usage();
+
 
 if ($level) {
     my %LEVEL = (   
@@ -103,43 +100,27 @@ if ($level) {
 }
 
 
-if ($infile) {
+open(IN, "-|",'cut -f 2,3 '.$infile.' | taxonkit --data-dir '.$ENV{'KRAKEN2_DB_PATH'}.'/'.$ENV{'KRAKEN2_DEFAULT_DB'}.'/taxonomy lineage --taxid-field 2 | taxonkit --data-dir '.$ENV{'KRAKEN2_DB_PATH'}.'/'.$ENV{'KRAKEN2_DEFAULT_DB'}.'/taxonomy reformat  --lineage-field 3  -f "k__{k}; p__{p}; c__{c}; o__{o}; f__{f}; g__{g}; s__{s}"') or $LOGGER->logdie($!);
 
-    $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
+print join("\t", '#OTU ID', 'taxonomy'),"\n";
 
-    $fh = FileHandle->new;
-    $fh->open("<$infile");
-
-} else {
-    unless (isatty(*STDIN)) {
-        $fh = \*STDIN;
-    } else {
-        $LOGGER->logdie("Missing input file (-i/--infile) or STDIN data");
-    }
+while(<IN>) {
+	chomp;
+	my @F=split(/\t/, $_);
+	
+	$F[0]=~s/\s//g;
+	#$F[3]=~s/\|s__$//;
+	#$F[3]=~s/\|g__$//;
+	#$F[3]=~s/\|f__$//;
+	#$F[3]=~s/\|o__$//;
+	#$F[3]=~s/\|c__$//;
+	#$F[3]=~s/\|p__$//;
+	#$F[3]=~s/\|d__$//;
+	
+	print join("\t",@F[0,3]),"\n";
 }
+close(IN);
 
-my $id;
-my $seq;
-my $qual;
-
-while(<$fh>) {
-    chomp;
-    if ($. % 4 == 1) {
-        ($id)=$_=~/^(\S+)/;
-    } elsif ($. % 4 == 2) {
-        $seq=$_;
-    } elsif ($. % 4 == 0) {
-        $qual=$_;
-        
-        $seq=~s/(.{$nline})/$1\n/sg if ($nline);
-        
-        print   '>',$id,"\n",
-                $seq,"\n";
-    }
-}
-
-
-$fh->close();
 
 # Subroutines
 
@@ -147,7 +128,7 @@ sub Usage {
     my ($msg) = @_;
 	Readonly my $USAGE => <<"END_USAGE";
 Daniel Guariz Pinheiro (dgpinheiro\@gmail.com)
-(c)2012 Universidade de São Paulo
+(c)2019 Universidade Estadual Paulista "Júlio de Mesquita Filho"
 
 Usage
 
@@ -155,11 +136,10 @@ Usage
 
 Argument(s)
 
-        -h      --help      Help
-        -l      --level     Log level [Default: FATAL]
-        -i      --infile    Input file
-        -n      --nline     Number of bases per line
-
+        -h      --help  	Help
+        -l      --level		Log level [Default: FATAL]
+	-i	--infile	kraken2 output file
+	
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
     print STDERR qq[$0  ] . q[$Revision$] . qq[\n];

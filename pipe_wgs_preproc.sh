@@ -57,11 +57,11 @@ adap_barc_primer_path="./refs/adapter/"
 
 # scythe_adapters_3p_techseq_path - caminho para o arquivo contendo os adaptadores 3p
 # (de acordo com o protocolo/tecnologia de sequenciamento) para o programa scythe
-scythe_adapters_3p_techseq_path="${adap_barc_primer_path}/truseq_illumina_3p_adapt_R1.fa"
+scythe_adapters_3p_techseq_path="${adap_barc_primer_path}/nextera_illumina_3p_adapt_R1.fa"
 
 # cutadapt_adapters_5p_techseq_path - caminho para o arquivo contendo os adaptadores 3p 
 # (de acordo com o protocolo/tecnologia de sequenciamento) para o programa scythe
-cutadapt_adapters_5p_techseq_path="${adap_barc_primer_path}/truseq_illumina_5p_adapt_R1.fa"
+cutadapt_adapters_5p_techseq_path="${adap_barc_primer_path}/nextera_illumina_5p_adapt_R1.fa"
 
 #########################################
 ###

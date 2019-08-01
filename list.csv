@@ -1,0 +1,84 @@
+NC_002695	Escherichia coli O157:H7 str. Sakai	1	7.83333	23.5	3.66667	11
+NC_002128	Escherichia coli O157:H7 str. Sakai plasmid pO157	1	7.83333	23.5	3.66667	11
+NC_002127	Escherichia coli O157:H7 str. Sakai plasmid pOSAK1	1	7.83333	23.5	3.66667	11
+NC_017986	Pseudomonas putida ND6	2	10.00000	20	10.00000	20
+NC_018746	Pseudomonas putida ND6 plasmid pND6-2	2	10.00000	20	10.00000	20
+NC_017249	Bradyrhizobium japonicum USDA 6	3	13.00000	13	15.00000	15
+NC_007606	Shigella dysenteriae Sd197	4	3.66667	11	7.83333	23.5
+NC_009344	Shigella dysenteriae Sd197 plasmid pSD197_spA	4	3.66667	11	7.83333	23.5
+NC_007607	Shigella dysenteriae Sd197 plasmid pSD1_197	4	3.66667	11	7.83333	23.5
+NC_006350	Burkholderia pseudomallei K96243 chromosome I	5	3.50000	7	1.50000	3
+NC_006351	Burkholderia pseudomallei K96243 chromosome II	5	3.50000	7	1.50000	3
+NC_006814	Lactobacillus acidophilus NCFM	6	6.00000	6	6.00000	6
+NC_000964	Bacillus subtilis subsp. subtilis str. 168	7	5.00000	5	5.00000	5
+NC_003210	Listeria monocytogenes EGD-e	8	3.00000	3	9.00000	9
+NC_001133	Saccharomyces cerevisiae S288C chromosome I	9	0.23529	4	0.05882	1
+NC_001134	Saccharomyces cerevisiae S288C chromosome II	9	0.23529	4	0.05882	1
+NC_001135	Saccharomyces cerevisiae S288C chromosome III	9	0.23529	4	0.05882	1
+NC_001136	Saccharomyces cerevisiae S288C chromosome IV	9	0.23529	4	0.05882	1
+NC_001137	Saccharomyces cerevisiae S288C chromosome V	9	0.23529	4	0.05882	1
+NC_001138	Saccharomyces cerevisiae S288C chromosome VI	9	0.23529	4	0.05882	1
+NC_001139	Saccharomyces cerevisiae S288C chromosome VII	9	0.23529	4	0.05882	1
+NC_001140	Saccharomyces cerevisiae S288C chromosome VIII	9	0.23529	4	0.05882	1
+NC_001141	Saccharomyces cerevisiae S288C chromosome IX	9	0.23529	4	0.05882	1
+NC_001142	Saccharomyces cerevisiae S288C chromosome X	9	0.23529	4	0.05882	1
+NC_001143	Saccharomyces cerevisiae S288C chromosome XI	9	0.23529	4	0.05882	1
+NC_001144	Saccharomyces cerevisiae S288C chromosome XII	9	0.23529	4	0.05882	1
+NC_001145	Saccharomyces cerevisiae S288C chromosome XIII	9	0.23529	4	0.05882	1
+NC_001146	Saccharomyces cerevisiae S288C chromosome XIV	9	0.23529	4	0.05882	1
+NC_001147	Saccharomyces cerevisiae S288C chromosome XV	9	0.23529	4	0.05882	1
+NC_001148	Saccharomyces cerevisiae S288C chromosome XVI	9	0.23529	4	0.05882	1
+NC_001224	Saccharomyces cerevisiae S288C mitochondrion MT	9	0.23529	4	0.05882	1
+NC_007194	Aspergillus fumigatus Af293 chromosome 1	10	0.25000	2	0.62500	5
+NC_007195	Aspergillus fumigatus Af293 chromosome 2	10	0.25000	2	0.62500	5
+NC_007196	Aspergillus fumigatus Af293 chromosome 3	10	0.25000	2	0.62500	5
+NC_007197	Aspergillus fumigatus Af293 chromosome 4	10	0.25000	2	0.62500	5
+NC_007198	Aspergillus fumigatus Af293 chromosome 5	10	0.25000	2	0.62500	5
+NC_007199	Aspergillus fumigatus Af293 chromosome 6	10	0.25000	2	0.62500	5
+NC_007200	Aspergillus fumigatus Af293 chromosome 7	10	0.25000	2	0.62500	5
+NC_007201	Aspergillus fumigatus Af293 chromosome 8	10	0.25000	2	0.62500	5
+NC_012870	Sorghum bicolor chromosome 1	11	0.08333	1	0.08333	1
+NC_012871	Sorghum bicolor chromosome 2	11	0.08333	1	0.08333	1
+NC_012872	Sorghum bicolor chromosome 3	11	0.08333	1	0.08333	1
+NC_012873	Sorghum bicolor chromosome 4	11	0.08333	1	0.08333	1
+NC_012874	Sorghum bicolor chromosome 5	11	0.08333	1	0.08333	1
+NC_012875	Sorghum bicolor chromosome 6	11	0.08333	1	0.08333	1
+NC_012876	Sorghum bicolor chromosome 7	11	0.08333	1	0.08333	1
+NC_012877	Sorghum bicolor chromosome 8	11	0.08333	1	0.08333	1
+NC_012878	Sorghum bicolor chromosome 9	11	0.08333	1	0.08333	1
+NC_012879	Sorghum bicolor chromosome 10	11	0.08333	1	0.08333	1
+NC_008360	Sorghum bicolor mitochondrion MT	11	0.08333	1	0.08333	1
+NC_008602	Sorghum bicolor plastid Pltd	11	0.08333	1	0.08333	1
+NC_037328	Bos taurus chromosome 1	12	0.01613	0.5	0.01613	0.5
+NC_037329	Bos taurus chromosome 2	12	0.01613	0.5	0.01613	0.5
+NC_037330	Bos taurus chromosome 3	12	0.01613	0.5	0.01613	0.5
+NC_037331	Bos taurus chromosome 4	12	0.01613	0.5	0.01613	0.5
+NC_037332	Bos taurus chromosome 5	12	0.01613	0.5	0.01613	0.5
+NC_037333	Bos taurus chromosome 6	12	0.01613	0.5	0.01613	0.5
+NC_037334	Bos taurus chromosome 7	12	0.01613	0.5	0.01613	0.5
+NC_037335	Bos taurus chromosome 8	12	0.01613	0.5	0.01613	0.5
+NC_037336	Bos taurus chromosome 9	12	0.01613	0.5	0.01613	0.5
+NC_037337	Bos taurus chromosome 10	12	0.01613	0.5	0.01613	0.5
+NC_037338	Bos taurus chromosome 11	12	0.01613	0.5	0.01613	0.5
+NC_037339	Bos taurus chromosome 12	12	0.01613	0.5	0.01613	0.5
+NC_037340	Bos taurus chromosome 13	12	0.01613	0.5	0.01613	0.5
+NC_037341	Bos taurus chromosome 14	12	0.01613	0.5	0.01613	0.5
+NC_037342	Bos taurus chromosome 15	12	0.01613	0.5	0.01613	0.5
+NC_037343	Bos taurus chromosome 16	12	0.01613	0.5	0.01613	0.5
+NC_037344	Bos taurus chromosome 17	12	0.01613	0.5	0.01613	0.5
+NC_037345	Bos taurus chromosome 18	12	0.01613	0.5	0.01613	0.5
+NC_037346	Bos taurus chromosome 19	12	0.01613	0.5	0.01613	0.5
+NC_037347	Bos taurus chromosome 20	12	0.01613	0.5	0.01613	0.5
+NC_037348	Bos taurus chromosome 21	12	0.01613	0.5	0.01613	0.5
+NC_037349	Bos taurus chromosome 22	12	0.01613	0.5	0.01613	0.5
+NC_037350	Bos taurus chromosome 23	12	0.01613	0.5	0.01613	0.5
+NC_037351	Bos taurus chromosome 24	12	0.01613	0.5	0.01613	0.5
+NC_037352	Bos taurus chromosome 25	12	0.01613	0.5	0.01613	0.5
+NC_037353	Bos taurus chromosome 26	12	0.01613	0.5	0.01613	0.5
+NC_037354	Bos taurus chromosome 27	12	0.01613	0.5	0.01613	0.5
+NC_037355	Bos taurus chromosome 28	12	0.01613	0.5	0.01613	0.5
+NC_037356	Bos taurus chromosome 29	12	0.01613	0.5	0.01613	0.5
+NC_037357	Bos taurus chromosome X	12	0.01613	0.5	0.01613	0.5
+NC_006853	Bos taurus chromosome MT	12	0.01613	0.5	0.01613	0.5
+NZ_CP007536	Nitrososphaera viennensis EN76	13	4.00000	4	0.00000	0
+			100.00000		100.00000	

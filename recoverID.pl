@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 #              INGLÊS/ENGLISH
 #  This program is distributed in the hope that it will be useful,
@@ -76,21 +76,20 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile, $fastalinewidth);
+my ($level, $infile, $outfile, $hashfile, $fixedlen, $padchar, $sub, $replace);
 
-#Usage("Too few arguments") if $#ARGV < 0;
+Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|infile=s"=>\$infile,
             "o|outfile=s"=>\$outfile,
-            "if|informat=s"=>\$informat,
-            "of|outformat=s"=>\$outformat,
-            "p|prefix=s"=>\$prefix,
-            "l|listfile=s"=>\$listfile,
-            "w|fastalinewidth=i"=>\$fastalinewidth
+            "h|hashfile=s"=>\$hashfile,
+            "f|fixedlen=i"=>\$fixedlen,
+            "c|char=s"=>\$padchar,
+            "s|sub=s"=>\$sub,
+            "r|replace=s"=>\$replace
     ) or &Usage();
 
-$fastalinewidth||=100;    
 
 if ($level) {
     my %LEVEL = (   
@@ -106,59 +105,49 @@ if ($level) {
     Log::Log4perl->easy_init($LEVEL{$level});
 }
 
-use FileHandle;
-use POSIX 'isatty';
+use Storable;
 
-$prefix||='SEQ';
-$informat||='FASTQ';
-$outformat||='FASTQ';
+$padchar||=" ";
 
-my $fhin;
-my $fhout;
+$LOGGER->logdie("Missing hash file") unless ($hashfile);
+$LOGGER->logdie("Wrong hash file ($hashfile)") unless (-e $hashfile);
 
-if ($infile) {
+my $hr_orig = retrieve($hashfile);
 
-    $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
+#foreach my $k (keys %{$hr_orig}) {
+#    print $k,"\t",$hr_orig->{$k},"\n";
+#}
 
-    $fhin = FileHandle->new;
-    $fhin->open("<$infile");
+$LOGGER->logdie("Missing input file") unless ($infile);
+$LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
 
-} else {
-    unless (isatty(*STDIN)) {
-        $fhin = \*STDIN;
-    } else {
-        $LOGGER->logdie("Missing input file (-i/--infile) or STDIN data");
+$LOGGER->logdie("Missing output file") unless ($outfile);
+
+open(IN, "<", $infile) or $LOGGER->logdie($!);
+
+open(OUT, ">", $outfile) or $LOGGER->logdie($!);
+
+while(my $l = <IN>) {
+    chomp($l);
+    foreach my $k ( keys %{ $hr_orig } ) {
+        my $x = $hr_orig->{$k};
+        if ($fixedlen) {
+            if (length($x) < $fixedlen) {
+                $x=&RPad($x, $fixedlen, $padchar);
+            }
+        }
+
+        if (($sub)&&($replace)) {
+            $x=~s/$sub/$replace/g;
+        }
+	$k=quotemeta($k);
+        $l=~s/$k/$x/g;
     }
+    print OUT $l,"\n";
 }
 
-if ($outfile) {
-    $fhout = FileHandle->new;
-    $fhout->open(">$outfile");
-} else {
-    $fhout = \*STDOUT;
-}
-
-use Bio::SeqIO;
-
-my $in  = Bio::SeqIO->new(-fh=>$fhin,  -format=>$informat);
-my $out = Bio::SeqIO->new(-fh=>$fhout, -format=>$outformat, -width=>$fastalinewidth);
-
-my $fhlist = \*STDERR;
-if ($listfile) {
-    $fhlist = FileHandle->new;
-    $fhlist->open(">$listfile");
-}
-
-my $c = 1;
-while ( my $seq = $in->next_seq() ) {
-    my $hex = sprintf("%010X", $c);
-    if ($listfile) {
-        print { $fhlist } $seq->display_id(),"\t",$prefix.$hex,"\n";
-    }
-    $seq->display_id($prefix.$hex);
-    $out->write_seq( $seq );
-    $c++;
-}
+close(IN);
+close(OUT);
 
 # Subroutines
 
@@ -174,15 +163,15 @@ Usage
 
 Argument(s)
 
-        -h      --help              Help
-        -l      --level             Log level [Default: FATAL]
-        -i      --infile            Input file [Default: STDIN]
-        -o      --outfile           Output file [Default: STDOUT]
-        -if     --informat          Input file format [Default: FASTQ]
-        -of     --outformat         Output file format [Default: FASTQ]
-        -p      --prefix            Prefix [Default: SEQ]
-        -l      --listfile          List file with old and new name
-        -w      --fastalinewidth    FASTA line width
+        -h      --help      Help
+        -l      --level     Log level [Default: FATAL]
+        -i      --infile    Input file
+        -o      --outfile   Output file
+        -h      --hashfile  Hash file
+        -f      --fiexedlen Fixed length of strings (right pad character)
+        -c      --char      Character for right padding [Default space]
+        -s      --search    Search regular expression (used with -s)
+        -r      --replace   Replace string (used with -s)
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
@@ -190,4 +179,14 @@ END_USAGE
 	print STDERR $USAGE;
     exit(1);
 }
+
+sub RPad {
+
+    my($str, $len, $chr) = @_;
+
+    $chr = " " unless (defined($chr));
+        
+    return substr($str . ($chr x $len), 0, $len);
+
+} # RPad
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 #              INGLÊS/ENGLISH
 #  This program is distributed in the hope that it will be useful,
@@ -76,21 +76,16 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile, $fastalinewidth);
+my ($level, $infile, $outfile, $hashfile);
 
-#Usage("Too few arguments") if $#ARGV < 0;
+Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|infile=s"=>\$infile,
             "o|outfile=s"=>\$outfile,
-            "if|informat=s"=>\$informat,
-            "of|outformat=s"=>\$outformat,
-            "p|prefix=s"=>\$prefix,
-            "l|listfile=s"=>\$listfile,
-            "w|fastalinewidth=i"=>\$fastalinewidth
+            "h|hashfile=s"=>\$hashfile
     ) or &Usage();
 
-$fastalinewidth||=100;    
 
 if ($level) {
     my %LEVEL = (   
@@ -106,59 +101,29 @@ if ($level) {
     Log::Log4perl->easy_init($LEVEL{$level});
 }
 
-use FileHandle;
-use POSIX 'isatty';
-
-$prefix||='SEQ';
-$informat||='FASTQ';
-$outformat||='FASTQ';
-
-my $fhin;
-my $fhout;
-
-if ($infile) {
-
-    $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
-
-    $fhin = FileHandle->new;
-    $fhin->open("<$infile");
-
-} else {
-    unless (isatty(*STDIN)) {
-        $fhin = \*STDIN;
-    } else {
-        $LOGGER->logdie("Missing input file (-i/--infile) or STDIN data");
-    }
-}
-
-if ($outfile) {
-    $fhout = FileHandle->new;
-    $fhout->open(">$outfile");
-} else {
-    $fhout = \*STDOUT;
-}
 
 use Bio::SeqIO;
 
-my $in  = Bio::SeqIO->new(-fh=>$fhin,  -format=>$informat);
-my $out = Bio::SeqIO->new(-fh=>$fhout, -format=>$outformat, -width=>$fastalinewidth);
+use Storable;
 
-my $fhlist = \*STDERR;
-if ($listfile) {
-    $fhlist = FileHandle->new;
-    $fhlist->open(">$listfile");
-}
+my $in = Bio::SeqIO->new(-file=>$infile, -format=>'FASTA');
+my $out = Bio::SeqIO->new(-file=>'>'.$outfile, -format=>'FASTA');
 
-my $c = 1;
-while ( my $seq = $in->next_seq() ) {
-    my $hex = sprintf("%010X", $c);
-    if ($listfile) {
-        print { $fhlist } $seq->display_id(),"\t",$prefix.$hex,"\n";
-    }
-    $seq->display_id($prefix.$hex);
+$hashfile||="$infile.dump";
+
+my $i = 1;
+my %orig;
+while(my $seq = $in->next_seq() ) {
+    my $old_id = $seq->display_id();
+    my $new_id = 'PHYML'.&LPad($i,5,0);
+    print $seq->display_id(),"\t",'PHYML'.&LPad($i,5,0),"\n";
+    $seq->display_id( $new_id );
     $out->write_seq( $seq );
-    $c++;
+    $i++;
+    $orig{ $new_id } = $old_id;
 }
+
+store \%orig, $hashfile;
 
 # Subroutines
 
@@ -174,15 +139,11 @@ Usage
 
 Argument(s)
 
-        -h      --help              Help
-        -l      --level             Log level [Default: FATAL]
-        -i      --infile            Input file [Default: STDIN]
-        -o      --outfile           Output file [Default: STDOUT]
-        -if     --informat          Input file format [Default: FASTQ]
-        -of     --outformat         Output file format [Default: FASTQ]
-        -p      --prefix            Prefix [Default: SEQ]
-        -l      --listfile          List file with old and new name
-        -w      --fastalinewidth    FASTA line width
+        -h      --help      Help
+        -l      --level     Log level [Default: FATAL]
+        -i      --infile    Input file
+        -o      --outfile   Output file
+        -h      --hashfile  Hash file [Default: <Input file>.dump]
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
@@ -191,3 +152,8 @@ END_USAGE
     exit(1);
 }
 
+sub LPad {
+    my ($str, $len, $chr) = @_;
+    $chr = " " unless (defined($chr));
+    return substr(($chr x $len) . $str, -1 * $len, $len);
+} # LPad

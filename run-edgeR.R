@@ -20,7 +20,7 @@ if("--help" %in% args) {
       --help            	- print this Help
  
       Example:
-      ./run-edgeR.R --groups=\"groups.txt\" --in=\"input.txt\" --out=\"output.txt\" 
+      ./run-edgeR.R --ignore=\"id,desc,other\" --groups=\"groups.txt\" --in=\"input.txt\" --out=\"./output\" 
       
       Daniel Guariz Pinheiro
       FCAV/UNESP - Univ Estadual Paulista
@@ -32,7 +32,7 @@ if("--help" %in% args) {
  
 
 ## Parse arguments (we expect the form --arg=value)
-parseArgs <- function(x) strsplit(sub("^--", "", x), "=")
+parseArgs <- function(x) strsplit(sub("^--", "", x), split="=")
 argsDF <- as.data.frame(do.call("rbind", parseArgs(args)))
 argsL <- as.list(as.character(argsDF$V2))
 names(argsL) <- argsDF$V1
@@ -78,7 +78,7 @@ if ( ! file.exists(argsL[['groups']]) ) {
 
 ignorecols=c()
 if( ! is.null(argsL[['ignore']])) {
-	ignorecols=c(unlist(strsplit(argsL[['ignore']])))
+	ignorecols=c(unlist(strsplit(argsL[['ignore']],split=",")))
 }
 
 
@@ -167,7 +167,7 @@ for (c in 1:length(all.comb)) {
 	}
 
 	for (col in ignorecols) {
-		dge.res[[col]] <- x[dge.res[['gene_name']], col]
+		dge.res[[col]] <- x[rownames(df.cpm), col]
 	}
 	
 	
