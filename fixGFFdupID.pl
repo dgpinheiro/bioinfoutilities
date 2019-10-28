@@ -121,9 +121,9 @@ if ($infile) {
 }
 
 
-my $tmpdir = tempdir(".gfftempXXXXX", DIR => ".", CLEANUP => 1 );
+my $tmpdir = tempdir(".gfftempXXXXX", DIR => ".", CLEANUP => 1);
 
-#print $tmpdir,"\n";
+#print STDERR $tmpdir,"\n";
 
 open(GENE, ">", $tmpdir.'/'.'gene.gff') or $LOGGER->logdie($!);
 open(RNA, ">", $tmpdir.'/'.'rna.gff') or $LOGGER->logdie($!);
@@ -149,6 +149,8 @@ while(<$fhin>) {
     } else {
         my @F = split(/\t/, $_);
         my ($ID) = $F[8]=~/ID=([^;]+)/;
+        
+        $LOGGER->logdie("Not found ID: $_") unless ($ID);
 
         if (($F[2] eq 'gene')||($F[2] eq 'pseudogene')) {
             print GENE $_,"\n";
@@ -156,7 +158,7 @@ while(<$fhin>) {
                 $gene_count{$ID} = 0;
             }
             $gene{ $ID }->{ $F[0] }->{ $F[6] }->{ $F[3] }->{ $F[4] } = { 'data'=>\@F, 'name'=>$ID.'_'.++$gene_count{$ID} };
-        } elsif (($F[2] eq 'RNA')||($F[2] eq 'miRNA')||($F[2] eq 'snoRNA')||($F[2] eq 'snRNA')) {
+        } elsif (($F[2] eq 'RNA')||($F[2] eq 'miRNA')||($F[2] eq 'snoRNA')||($F[2] eq 'snRNA')||($F[2] eq 'RNase_P_RNA')) {
             print RNA $_,"\n";
             unless (exists $rna{ $ID }) {
                 $rna_count{$ID} = 0;
@@ -166,7 +168,7 @@ while(<$fhin>) {
             my ($Parent) = $F[8]=~/Parent=([^;]+)/;
             $LOGGER->logdie("Missing Parent for $F[8]") unless ($Parent);
             if (exists $gene{ $Parent }) {
-                $LOGGER->logdie("Found a gene parent that is not an RNA/miRNA/snoRNA/snRNA ($Parent) [$_]");
+                $LOGGER->logdie("Found a gene parent that is not an RNA/miRNA/snoRNA/snRNA/RNase_P_RNA ($Parent) [$_]");
             }
             unless (exists $parent{ $ID }) {
                 $parent_count{$ID} = 0;
@@ -174,7 +176,7 @@ while(<$fhin>) {
             $parent{ $ID }->{ $F[0] }->{ $F[6] }->{ $F[3] }->{ $F[4] } = { 'data'=>\@F, 'name'=>$ID.'_'.++$parent_count{$ID} };
             print PARENT join("\t", @{ $parent{ $ID }->{ $F[0] }->{ $F[6] }->{ $F[3] }->{ $F[4] }->{'data'} }),"\n";
         }
-    }        
+    } 
 }
 
 $fhin->close();
@@ -215,12 +217,19 @@ while(<INTER>) {
     my ($ID) = $F[8]=~/ID=([^;]+)/;
     $LOGGER->logdie("Not found ID for an entry ($F[8]) [".$_."]") unless ($ID);
     my ($Parent) = $F[8]=~/Parent=([^;]+)/;
+    my ($Parent_GeneID) = $F[8]=~/GeneID:(\d+)/;
+    $Parent_GeneID||=0;
+    
     $LOGGER->logdie("Not found Parent for an entry ($F[8]) [".$_."]") unless ($Parent);
     if ($F[17]) {
         my ($InterID) = $F[17]=~/ID=([^;]+)/;
         $LOGGER->logdie("Not found ID for gene entry ($F[17]) [".$_."]") unless ($InterID);
+        my ($Inter_GeneID)= $F[17]=~/GeneID:(\d+)/;
+        $Inter_GeneID||=1;
 
-        if ( $Parent eq $InterID ) {
+        if  (( $Parent eq $InterID ) || 
+             ( ($F[2] eq 'miRNA') && ($Parent_GeneID == $Inter_GeneID) ) 
+            ) {
             my ($chr, $strand, $s, $e) = @F[9, 15, 12, 13];
 
             my $new_name = $gene{ $InterID }->{ $chr }->{ $strand }->{ $s }->{ $e }->{'name'};
@@ -238,6 +247,8 @@ while(<INTER>) {
             }
 
             print join("\t", @F[0..8]),"\n";
+        } else {
+            #$LOGGER->logdie("Distinct Parent ($Parent) and ID ($InterID) attributes in ($F[2]) intersection (i.e, maybe the same as occurred with miRNAs): $_");
         }            
     } else {
         $LOGGER->logdie("Not found an intersection for RNA entry ($_)");
