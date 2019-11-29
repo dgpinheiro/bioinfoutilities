@@ -17,7 +17,7 @@ if("--help" %in% args) {
       --groups=someValue	- group file path
       --out=someValue   	- output directory path
       --ncores=Integer		- number of processors available
-      --ignore=someValue	- columns to ignore
+      --ignore=someValue	- columns to ignore (comma separated values). Example: --ignore=\"id,desc,other\"
       --pseudocount		- number to add
       --help            	- print this Help
 
@@ -31,7 +31,7 @@ if("--help" %in% args) {
 	* <GROUP_NAME> is the name of the group
 
       Example:
-      ./run-DESeq2.R --ignore=\"id,desc,other\" --in=\"input.txt\" --out=\"./output\" 
+      ./run-DESeq2.R --groups=\"groups.txt\" --in=\"input.txt\" --out=\"./output\" 
       
       Daniel Guariz Pinheiro
       FCAV/UNESP - Univ Estadual Paulista
@@ -106,7 +106,6 @@ register(MulticoreParam(argsL[['ncores']]))
 
 suppressPackageStartupMessages( library('methods') )
 suppressPackageStartupMessages( library('DESeq2') )
-suppressPackageStartupMessages( library('edgeR') )
 
 x <-read.delim( argsL[['in']], header=TRUE )
 
@@ -164,7 +163,15 @@ dds <- DESeqDataSetFromMatrix(countData = countData+as.numeric(argsL[['pseudocou
 
 dds <- estimateSizeFactors(dds)
 sizeFactors(dds)
-dds <- estimateDispersions(dds)
+
+if (is.na(tryCatch( 
+			dds <- estimateDispersions(dds,fitType="parametric") 
+		  , 
+		  error=function(e) NA 
+		  ) )) {
+		dds <- estimateDispersionsGeneEst(dds)
+		dispersions(dds) <- mcols(dds)$dispGeneEst
+}
 
 normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
                       ncol=ncol(dds),nrow=nrow(dds),
@@ -174,7 +181,7 @@ normFactors <- normFactors / exp(rowMeans(log(normFactors)))
 normalizationFactors(dds) <- normFactors
 
 
-cat("DESeq...\n")
+cat("DESeq2...\n")
 dds <- DESeq(dds, parallel=TRUE)
 
 deseq_ncounts <- as.data.frame( counts(dds, normalized=TRUE) )
