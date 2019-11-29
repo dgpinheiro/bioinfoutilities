@@ -20,7 +20,16 @@ if("--help" %in% args) {
       --ignore=someValue	- columns to ignore
       --pseudocount		- number to add
       --help            	- print this Help
- 
+
+	GROUP file must be formatted as tab-delimited columns with sample names grouped by group name:
+
+	id		name		group
+	<SAMPLE_ID>	<SAMPLE_NAME>	<GROUP_NAME>
+
+	* <SAMPLE_ID> is the name of the sample column in abundances' matrix
+	* <SAMPLE_NAME> is the name of the sample column after DESeq2 analysis
+	* <GROUP_NAME> is the name of the group
+
       Example:
       ./run-DESeq2.R --ignore=\"id,desc,other\" --in=\"input.txt\" --out=\"./output\" 
       
