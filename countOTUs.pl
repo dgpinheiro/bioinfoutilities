@@ -85,7 +85,7 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "i|infile=s"=>\$infile,
             "c|colname=s"=>\$colname,
             "n|norm=i"=>\$normby,
-	    "s|sep=s"=>\$sep
+            "s|sep=s"=>\$sep
     ) or &Usage();
 
 $sep='|' unless ($sep);
@@ -172,8 +172,8 @@ while(<IN>) {
         for (my $i=0; $i<= $#taxlevel; $i++) {
             my @v;
             for (my $j=0; $j<= $i; $j++) {
-		$taxlevel[$j]=~s/^\s+//;
-		$taxlevel[$j]=~s/\s+$//;
+    	    	$taxlevel[$j]=~s/^\s+//;
+	    	    $taxlevel[$j]=~s/\s+$//;
                 push(@v, $taxlevel[$j]);
             }
             my $class=join('; ', @v);
@@ -284,7 +284,7 @@ Argument(s)
         -c      --colname   Annotation column name of taxonomy in mpa format
         -n      --normby    Normalization by [Default: Off]
         -r      --rank      Filter by rank (one letter) [Default: Off]
-	-s	--sep       Taxonomy rank delimiter
+        -s      --sep       Taxonomy rank delimiter
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
