@@ -5,6 +5,15 @@ use warnings;
 
 use Storable;
 
+use DBI;
+
+my $data_source='dbi:mysql:database=pgpm;host=hammer.fcav.unesp.br';
+my $username='dgpinheiro';
+my $auth='b101nf0';
+
+my $dbh = DBI->connect($data_source, $username, $auth, { RaiseError => 1, AutoCommit => 0 });
+
+
 my $infile=$ARGV[0];
 
 die "Missing input file (.tree)" unless ($infile);
@@ -26,11 +35,9 @@ if (-e "$annfile.dump") {
 	while(my $l = <ANN>) {
 		chomp($l);
 		my ($id, $desc)=split(/\t/, $l);
-        my ($taxid) = $desc=~/TaxID=(\d+)/;
 		$desc=~s/\sn=\d+ .*$//;
 		#print $id,"\t",$desc,"\n";
-		$hr_annot->{$id}->{'desc'} = $desc;
-		$hr_annot->{$id}->{'taxid'} = $taxid;
+		$hr_annot->{$id} = $desc;
 	}
 	close(ANN);
 
@@ -96,7 +103,7 @@ if ($msafa) {
 open(IN, "<", $infile) or die $!;
 open(OUT, ">", $outfile) or die $!;
 
-print OUT "#taxa\tdescription\tsubfamily\ttaxonomy\ttax_id\n" if ($annsf);
+print OUT "#taxa\tdescription\tsubfamily\n" if ($annsf);
 
 my $hr_tax;
 my %tax;
@@ -106,8 +113,8 @@ while(my $l = <IN>) {
 		my $id = $1;
 		my $uniref=$id;
 		$uniref=~s/UniRef100_//;
-		$hr_annot->{$id}->{'desc'}||='';
-		print OUT $id,"\t","$uniref $hr_annot->{$id}->{'desc'}";
+		$hr_annot->{$id}||='';
+		print OUT $id,"\t","$uniref $hr_annot->{$id}";
 		if (exists $msa{ $id }) {
 			print OUT '(','*';
 			if ($seed eq $id) {
@@ -119,49 +126,20 @@ while(my $l = <IN>) {
 		if (exists $hr_tax->{ $id }) {
 			print OUT ' / '.$tax{ $hr_tax->{ $id } };
 		} else {
-			my ($common_tax_id);
-            my $try=1;
-            while ( (! -e "/tmp/$id.tab") && ($try<=3 ) ) {
-                `curl -s https://www.uniprot.org/uniref/$id.tab > /tmp/$id.tab`;
-                $try++;
-                sleep(3);
-            }
-
-            open(TST, "<", "/tmp/$id.tab") or die "File not found /tmp/$id.tab";
-            my $first=<TST>;
-            chomp($first);
-            close(TST);
-
-            if ($first=~/^<!DOCTYPE/) {
-                $common_tax_id=$hr_annot->{$id}->{'taxid'} if ($hr_annot->{$id}->{'taxid'});
-            } else {
-                $common_tax_id = `cat /tmp/$id.tab | cut -f 6  | tail -n+2 | GetLCA.pl`;
-                chomp($common_tax_id);
-                $common_tax_id||=1;
-            }
-            
+			my ($common_tax_id) = $dbh->selectrow_array("SELECT common_tax_id FROM uniref WHERE uniref_id=?", undef, $id);
 			unless ($common_tax_id) {
 				die "Not found common_tax_id FOR uniref_id=$id";
 			}
-            if ($common_tax_id !~ /^\d+$/) {
-                die "This is not a number $common_tax_id";
-            }
-            $common_tax_id+=0;
-            
 			$hr_tax->{ $id } = $common_tax_id;
 			unless (exists $tax{ $common_tax_id }) {
-                my $gettaxinfo_cmd = "GetTaxInfo.pl $common_tax_id | tail -1 | cut -f 5";
-    		    $tax{ $common_tax_id } = `$gettaxinfo_cmd`;
-                chomp($tax{ $common_tax_id });
+				$tax{ $common_tax_id } = `GetTaxInfo.pl $common_tax_id | tail -1 | cut -f 5`;
 			}
 		}
 		
 		if ($annsf) {
-            my $taxon = ( (($hr_tax->{$id})&&($tax{ $hr_tax->{$id} })) ? $tax{ $hr_tax->{$id} } : '');
-            chomp($taxon);
-			print OUT " [$sf{$id}] ".$taxon."\t",$sf{ $id },"\t",$taxon,"\t",$hr_tax->{$id};
+			print OUT " [$sf{$id}]\t",$sf{ $id };
 		} else {
-			print OUT "\t",'',"\t",'';
+			print OUT "\t",'';
 		}
 		print OUT "\n";
 	}

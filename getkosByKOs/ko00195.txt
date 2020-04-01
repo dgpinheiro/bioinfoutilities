@@ -1,0 +1,116 @@
+ENTRY       ko00195                     Pathway
+NAME        Photosynthesis
+DESCRIPTION Photosynthesis in green plants and specialized bacteria is the process of utilizing light energy to synthesize organic compounds from carbon dioxide and water. It consists of the light dependent part (light reaction) and the light independent part (dark reaction, carbon fixation). The light reaction takes place in thylakoid, a membrane-bound compartment inside chloroplasts and cyanobacteria. The light energy is used by photosystems I and II to generate proton motive force and reducing power (NADPH or NADH). The proton motive force is used by ATP synthase to generate ATP, essentially in the same way as the mitochondrial respiratory chain. The supplies of ATP and NAD(P)H are then used to fix carbon dioxide.
+CLASS       Metabolism; Energy metabolism
+PATHWAY_MAP ko00195  Photosynthesis
+MODULE      M00157  F-type ATPase, prokaryotes and chloroplasts [PATH:ko00195]
+            M00161  Photosystem II [PATH:ko00195]
+            M00162  Cytochrome b6f complex [PATH:ko00195]
+            M00163  Photosystem I [PATH:ko00195]
+ORTHOLOGY   K02703  photosystem II P680 reaction center D1 protein [EC:1.10.3.9]
+            K02704  photosystem II CP47 chlorophyll apoprotein
+            K02705  photosystem II CP43 chlorophyll apoprotein
+            K02706  photosystem II P680 reaction center D2 protein [EC:1.10.3.9]
+            K02707  photosystem II cytochrome b559 subunit alpha
+            K02708  photosystem II cytochrome b559 subunit beta
+            K02709  photosystem II PsbH protein
+            K02710  photosystem II PsbI protein
+            K02711  photosystem II PsbJ protein
+            K02712  photosystem II PsbK protein
+            K02713  photosystem II PsbL protein
+            K02714  photosystem II PsbM protein
+            K02716  photosystem II oxygen-evolving enhancer protein 1
+            K02717  photosystem II oxygen-evolving enhancer protein 2
+            K08901  photosystem II oxygen-evolving enhancer protein 3
+            K03541  photosystem II 10kDa protein
+            K03542  photosystem II 22kDa protein
+            K02718  photosystem II PsbT protein
+            K02719  photosystem II PsbU protein
+            K02720  photosystem II cytochrome c550
+            K02721  photosystem II PsbW protein
+            K02722  photosystem II PsbX protein
+            K02723  photosystem II PsbY protein
+            K02724  photosystem II PsbZ protein
+            K08902  photosystem II Psb27 protein
+            K08903  photosystem II 13kDa protein
+            K08904  photosystem II Psb28-2 protein
+            K02689  photosystem I P700 chlorophyll a apoprotein A1
+            K02690  photosystem I P700 chlorophyll a apoprotein A2
+            K02691  photosystem I subunit VII
+            K02692  photosystem I subunit II
+            K02693  photosystem I subunit IV
+            K02694  photosystem I subunit III
+            K08905  photosystem I subunit V
+            K02695  photosystem I subunit VI
+            K02696  photosystem I subunit VIII
+            K02697  photosystem I subunit IX
+            K02698  photosystem I subunit X
+            K02699  photosystem I subunit XI
+            K02700  photosystem I subunit XII
+            K02701  photosystem I subunit PsaN
+            K14332  photosystem I subunit PsaO
+            K02702  photosystem I 4.8kDa protein
+            K02634  apocytochrome f
+            K02635  cytochrome b6
+            K02636  cytochrome b6-f complex iron-sulfur subunit [EC:7.1.1.6]
+            K02637  cytochrome b6-f complex subunit 4
+            K02640  cytochrome b6-f complex subunit 5
+            K02642  cytochrome b6-f complex subunit 6
+            K02643  cytochrome b6-f complex subunit 7
+            K03689  cytochrome b6-f complex subunit 8
+            K02638  plastocyanin
+            K02639  ferredoxin
+            K02641  ferredoxin--NADP+ reductase [EC:1.18.1.2]
+            K08906  cytochrome c6
+            K02114  F-type H+-transporting ATPase subunit epsilon
+            K02112  F-type H+/Na+-transporting ATPase subunit beta [EC:7.1.2.2 7.2.2.1]
+            K02115  F-type H+-transporting ATPase subunit gamma
+            K02111  F-type H+/Na+-transporting ATPase subunit alpha [EC:7.1.2.2 7.2.2.1]
+            K02113  F-type H+-transporting ATPase subunit delta
+            K02109  F-type H+-transporting ATPase subunit b
+            K02110  F-type H+-transporting ATPase subunit c
+            K02108  F-type H+-transporting ATPase subunit a
+COMPOUND    C00001  H2O
+            C00002  ATP
+            C00005  NADPH
+            C00006  NADP+
+            C00007  Oxygen
+            C00008  ADP
+            C00009  Orthophosphate
+            C00034  Manganese
+            C00080  H+
+            C02061  Plastoquinone
+            C02185  Plastoquinol-1
+REFERENCE   PMID:14764885
+  AUTHORS   Ferreira KN, Iverson TM, Maghlaoui K, Barber J, Iwata S.
+  TITLE     Architecture of the photosynthetic oxygen-evolving center.
+  JOURNAL   Science 303:1831-8 (2004)
+            DOI:10.1126/science.1093087
+REFERENCE   PMID:12518057
+  AUTHORS   Kamiya N, Shen JR.
+  TITLE     Crystal structure of oxygen-evolving photosystem II from Thermosynechococcus vulcanus at 3.7-A resolution.
+  JOURNAL   Proc Natl Acad Sci U S A 100:98-103 (2003)
+            DOI:10.1073/pnas.0135651100
+REFERENCE   PMID:11217865
+  AUTHORS   Zouni A, Witt HT, Kern J, Fromme P, Krauss N, Saenger W, Orth P.
+  TITLE     Crystal structure of photosystem II from Synechococcus elongatus at 3.8 A resolution.
+  JOURNAL   Nature 409:739-743 (2001)
+            DOI:10.1038/35055589
+REFERENCE   PMID:11418848
+  AUTHORS   Jordan P, Fromme P, Witt HT, Klukas O, Saenger W, Krauss N.
+  TITLE     Three-dimensional structure of cyanobacterial photosystem I at 2.5 A resolution.
+  JOURNAL   Nature 411:909-917 (2001)
+            DOI:10.1038/35082000
+REFERENCE   PMID:11369223
+  AUTHORS   Jones MR, Fyfe PK.
+  TITLE     Photosynthesis: new light on biological oxygen production.
+  JOURNAL   Curr Biol 17:R318-R321 (2001)
+            DOI:10.1016/S0960-9822(01)00174-9
+REFERENCE   PMID:11914373
+  AUTHORS   Shen G, Zhao J, Reimer SK, Antonkine ML, Cai Q, Weiland SM, Golbeck JH, Bryant DA.
+  TITLE     Assembly of photosystem I. I. Inactivation of the rubA gene encoding a membrane-associated rubredoxin in the cyanobacterium Synechococcus sp. PCC 7002 causes a loss of photosystem I activity.
+  JOURNAL   J Biol Chem 277:20343-54 (2002)
+            DOI:10.1074/jbc.M201103200
+REL_PATHWAY ko00196  Photosynthesis - antenna proteins
+            ko00710  Carbon fixation in photosynthetic organisms
+///

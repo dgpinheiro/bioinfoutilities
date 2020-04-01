@@ -1,0 +1,2 @@
+K02710	psbI	photosystem II PsbI protein
+K02703	psbA	photosystem II P680 reaction center D1 protein [EC:1.10.3.9]

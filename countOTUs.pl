@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 #              INGLÊS/ENGLISH
 #  This program is distributed in the hope that it will be useful,
@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $colname, $normby, $rank);
+my ($level, $infile, $colname, $normby, $rank, $sep);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -84,9 +84,13 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "r|rank=s"=>\$rank,
             "i|infile=s"=>\$infile,
             "c|colname=s"=>\$colname,
-            "n|norm=i"=>\$normby
+            "n|norm=i"=>\$normby,
+	    "s|sep=s"=>\$sep
     ) or &Usage();
 
+$sep='|' unless ($sep);
+
+$sep=quotemeta($sep);
 
 if ($level) {
     my %LEVEL = (
@@ -164,14 +168,15 @@ while(<IN>) {
     }
 
     if ($data{ $colname }) {
-        my @taxlevel = (split(/\|/, $data{ $colname }));
+        my @taxlevel = (split(/$sep/, $data{ $colname }));
         for (my $i=0; $i<= $#taxlevel; $i++) {
             my @v;
             for (my $j=0; $j<= $i; $j++) {
+		$taxlevel[$j]=~s/^\s+//;
+		$taxlevel[$j]=~s/\s+$//;
                 push(@v, $taxlevel[$j]);
             }
-            
-            my $class=join('|', @v);
+            my $class=join('; ', @v);
             
             unless (exists $result{ $class }->{ 'level' }) {
                 unless ($class eq 'root') {
@@ -279,6 +284,7 @@ Argument(s)
         -c      --colname   Annotation column name of taxonomy in mpa format
         -n      --normby    Normalization by [Default: Off]
         -r      --rank      Filter by rank (one letter) [Default: Off]
+	-s	--sep       Taxonomy rank delimiter
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;

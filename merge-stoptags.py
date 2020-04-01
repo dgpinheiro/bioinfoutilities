@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#!/usr/bin/env python
 #
 """
 Merge lump stop tags.
@@ -8,6 +8,7 @@ Merge lump stop tags.
 
 import argparse
 import khmer
+from khmer import Nodegraph
 from khmer.khmer_args import info
 from khmer.kfile import check_input_files, check_space
 import textwrap
@@ -51,15 +52,15 @@ def main():
         	infiles.append(_)
 
     check_space(infiles, False)
-    ht = khmer.new_hashbits(args.ksize, 1, 1)
+    ht = Nodegraph(args.ksize, 1, 1)
     for _ in infiles:
-        print >>sys.stderr, 'loading stoptags %s' % _
-	ht.load_stop_tags(_, 0)
+        print('loading stoptags ', _, file=sys.stderr)
+        ht.load_stop_tags(_, 0)
 
-    print >>sys.stderr, 'writing file merge.stoptags'
+    print('writing file merge.stoptags, with K', args.ksize, file=sys.stderr)
     ht.save_stop_tags('merge.stoptags')
 
-    print >>sys.stderr, 'done!'
+    print('done!', file=sys.stderr)
 
 if __name__ == '__main__':
     main()

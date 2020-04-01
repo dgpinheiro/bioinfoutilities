@@ -1,0 +1,239 @@
+ENTRY       K02703                      KO
+NAME        psbA
+DEFINITION  photosystem II P680 reaction center D1 protein [EC:1.10.3.9]
+PATHWAY     ko00195  Photosynthesis
+            ko01100  Metabolic pathways
+MODULE      M00161  Photosystem II
+BRITE       KEGG Orthology (KO) [BR:ko00001]
+             09100 Metabolism
+              09102 Energy metabolism
+               00195 Photosynthesis
+                K02703  psbA; photosystem II P680 reaction center D1 protein
+             09180 Brite Hierarchies
+              09181 Protein families: metabolism
+               00194 Photosynthesis proteins
+                K02703  psbA; photosystem II P680 reaction center D1 protein
+            Enzymes [BR:ko01000]
+             1. Oxidoreductases
+              1.10  Acting on diphenols and related substances as donors
+               1.10.3  With oxygen as acceptor
+                1.10.3.9  photosystem II
+                 K02703  psbA; photosystem II P680 reaction center D1 protein
+            Photosynthesis proteins [BR:ko00194]
+             Photosystem and electron transport system
+              Photosystem II (P680 chlorophyll a) [OT]
+               Main subunits
+                K02703  psbA; photosystem II P680 reaction center D1 protein
+GENES       ATH: ArthCp002(psbA)
+            ALY: 32283147(psbA)
+            CRB: 25194241(psbA)
+            CSAT: 26971477(psbA)
+            EUS: ASK66_gp087(psbA) EUTSA_v10001821mg EUTSA_v10002847mg EUTSA_v10012367mg EUTSA_v10028093mg
+            BRP: 41704106(psbA)
+            BNA: 11542063(psbA)
+            RSZ: 19816312(psbA)
+            THJ: 32981844(psbA)
+            CPAP: 5878403(psbA)
+            CIT: 4271240(psbA)
+            CIC: CICLE_v10023978mg
+            TCC: 9978079(psbA)
+            GRA: 11538581(psbA)
+            GHI: 3989229(psbA)
+            GAB: 108466172 11540321(psbA)
+            DZI: 36165471(psbA)
+            EGR: 9829619(psbA)
+            GMX: 100796523 102663851 3989259(psbA)
+            GSJ: 114384101 17675599(psbA)
+            PVU: PHAVU_009G011900g PhvuCp04(psbA)
+            VRA: 106761818
+            VAR: 15382716(psbA)
+            VUN: 13080510(psbA)
+            CCAJ: 29293653(psbA)
+            MTR: MTR_0002s0380 MTR_1g057280 MTR_2g089580 MTR_3g088450 MTR_4g006190 MTR_4g050770 MTR_4g051290 MTR_7g017540 MTR_7g021750
+            CAM: 101500093(psbA) 6797508(psbA)
+            LJA: Lj0g3v0050739.1(Lj0g3v0050739.1) Lj0g3v0104129.1(Lj0g3v0104129.1) Lj2g3v1169930.1(Lj2g3v1169930.1) Ljclg3v0000020.1(Ljchlorog3v0000020.1)
+            ADU: 110273529
+            FVE: 10251480(psbA)
+            PPER: 9978686(psbA)
+            PMUM: 18667992(psbA)
+            ZJU: 27963810(psbA)
+            CSV: 3429275(psbA)
+            MCHA: 36165195(psbA)
+            CMAX: CYL43_pgp085(psbA)
+            CMOS: CYL42_pgp085(psbA)
+            RCU: 11542408(psbA) 8259252
+            JCU: 7564824(psbA)
+            HBR: 10351963(psbA) 110668827
+            MESC: 5999949(psbA)
+            POP: 4929629(psbA)
+            PEU: 20160407(psbA)
+            JRE: 26380890(psbA)
+            VVI: 4025118(psbA) 7498542(psbA)
+            SLY: 3950408(psbA)
+            SPEN: 34925861(psbA)
+            SOT: 4099946(psbA)
+            CANN: 13540179(psbA)
+            NTA: 800514(psbA)
+            NSY: 3735101(psbA)
+            NTO: 3776367(psbA)
+            NAU: 34583145(psbA)
+            INI: 29082189(psbA)
+            SIND: 11452502(psbA)
+            OEU: 111391524
+            HAN: 110870175 110876270 4055636(psbA)
+            LSV: 3772788(psbA)
+            SOE: 2715607(psbA)
+            CQI: 32959011(psbA)
+            NNU: 10743854(psbA)
+            PSOM: 26895662(psbA)
+            OSA: 3131409(psbA)
+            OBR: BBW32_gp001(psbA)
+            BDI: 6439798(psbA)
+            SBI: 4549136(psbA)
+            ZMA: 845199(psbA)
+            SITA: 101785134 19526747(psbA)
+            PDA: 8890537(psbA)
+            EGU: 12079499(psbA)
+            DCT: 36482768(psbA)
+            PEQ: 12079718(psbA)
+            AOF: CCL56_pgp001(psbA)
+            ATR: 2546591(psbA)
+            SMO: SemoP_p017(psbA)
+            PPP: 2546772(psbA)
+            CRE: ChreCp021(psbA) ChreCp057(psbA)
+            CSL: CospP_p021(psbA)
+            CVR: ChvaP_p018(psbA)
+            APRO: CP73_p051(psbA)
+            OTA: OstapCp30(psbA) OstapCp61(psbA)
+            BPG: BathyCg00306(psbA)
+            CME: CymeCp038(psbA)
+            GSL: Gasu_40100 JL72_p015(psbA)
+            CCP: CHC_125(psbA)
+            TPS: THAPSDRAFT_bd1736
+            AAF: AuanCp105(psbA)
+            SYN: sll1867(psbA3) slr1181(psbA1) slr1311(psbA2)
+            SYZ: MYO_116700(psbA3) MYO_131590(psbA1) MYO_180(psbA2)
+            SYY: SYNGTS_0008(psbA2) SYNGTS_1655(psbA3) SYNGTS_3123(psbA1)
+            SYT: SYNGTI_0008(psbA2) SYNGTI_1655(psbA3) SYNGTI_3122(psbA1)
+            SYS: SYNPCCN_0008(psbA2) SYNPCCN_1654(psbA3) SYNPCCN_3121(psbA1)
+            SYQ: SYNPCCP_0008(psbA2) SYNPCCP_1654(psbA3) SYNPCCP_3121(psbA1)
+            SYJ: D082_06970 D082_10610(psbA2)
+            SYO: C7I86_00040(psbA) C7I86_08585(psbA) C7I86_16395(psbA)
+            SYC: syc0166_d(psbAII) syc0647_c(psbAIII) syc1093_c(psbAI)
+            SYF: Synpcc7942_0424 Synpcc7942_0893 Synpcc7942_1389
+            SYW: SYNW0983(psbA2) SYNW1470(psbA1) SYNW1919(psbA4) SYNW2151(psbA3)
+            SYD: Syncc9605_0307 Syncc9605_0519 Syncc9605_1042
+            SYE: Syncc9902_0943 Syncc9902_1814 Syncc9902_1817 Syncc9902_2036
+            SYG: sync_0368(psbA-1) sync_1856(psbA-2) sync_1858(psbA-3) sync_2384(psbA-4)
+            SYR: SynRCC307_1440(psbA) SynRCC307_1441(psbA) SynRCC307_2009(psbA) SynRCC307_2183(psbA)
+            SYX: SynWH7803_0366(psbA) SynWH7803_0784(psbA) SynWH7803_0790(psbA) SynWH7803_2084(psbA)
+            SYP: SYNPCC7002_A0157(psbA-II) SYNPCC7002_A1418(psbA) SYNPCC7002_A2164(psbA)
+            CYA: CYA_1274(psbA-1) CYA_1748(psbA-2) CYA_1811(psbA-3) CYA_1849(psbA-4)
+            CYB: CYB_0216(psbA-1) CYB_0371(psbA-2) CYB_0433(psbA-3)
+            SYNE: Syn6312_0192 Syn6312_0235
+            SYNP: Syn7502_00179 Syn7502_01651
+            SYNK: KR100_02945 KR100_04160 KR100_10890
+            SYNR: KR49_00640 KR49_10540 KR49_11675
+            SYND: KR52_00900 KR52_11830 KR52_14315
+            SYU: M744_00850 M744_09650 M744_12270
+            SYH: Syncc8109_0312(psbA2) Syncc8109_0572(psbA2) Syncc8109_1647(psbA1)
+            SYNW: SynWH8103_01667(psbA) SynWH8103_02193(psbA) SynWH8103_02469(psbA)
+            SLW: BRW62_03225 BRW62_06850
+            SYV: AWQ23_00955 AWQ23_07270 AWQ23_10820
+            SYL: AWQ21_00790 AWQ21_07195 AWQ21_10975
+            TEL: tlr1477(psbA3) tlr1843(psbA1) tlr1844(psbA2)
+            THN: NK55_02840(psbA-1) NK55_05895(psbA-2) NK55_05900(psbA-3)
+            TVN: NIES2134_101790(psbA3) NIES2134_117690(psbA1) NIES2134_117700(psbA2)
+            THEC: FFX45_08385(psbA) FFX45_08390(psbA) FFX45_10905(psbA)
+            CGC: Cyagr_0383 Cyagr_1450 Cyagr_1879
+            CYI: CBM981_0737(psbA) CBM981_1035(psbA) CBM981_1920(psbA) CBM981_2941(psbA)
+            DSL: Dacsa_0484 Dacsa_1297 Dacsa_1746
+            CMP: Cha6605_4162 Cha6605_4379 Cha6605_5282
+            LEP: Lepto7376_0104 Lepto7376_0363 Lepto7376_1351 Lepto7376_3248
+            LEN: LEP3755_13910 LEP3755_25460 LEP3755_36470
+            LET: O77CONTIG1_00003(psbA2_1) O77CONTIG1_00004(psbA1) O77CONTIG1_02025(psbA2_2) O77CONTIG1_02842(psbA2_3)
+            LBO: LBWT_10560 LBWT_13760 LBWT_33200 LBWT_57790
+            HHG: XM38_010770(psbA_1) XM38_010900(chlF) XM38_018880(psbA_2) XM38_020870(psbA_3) XM38_037330(psbA_4)
+            PSEU: Pse7367_1317 Pse7367_2175
+            PSER: ABRG53_0822(psbA) ABRG53_3985(psbA) ABRG53_3993(psbA) ABRG53_d058(psbA)
+            PMA: Pro_0252(psbA)
+            PMM: PMM0223(psbA)
+            PMT: PMT_0419 PMT_1532
+            PMN: PMN2A_0558 PMN2A_0735 PMN2A_1592
+            PMI: PMT9312_0225 PMT9312_1144
+            PMB: A9601_02441(psbA) A9601_12521
+            PMC: P9515_02531(psbA) P9515_02551
+            PMF: P9303_04091(psbA) P9303_18681
+            PMG: P9301_02451(psbA)
+            PMH: P9215_13011(psbA)
+            PMJ: P9211_02461(psbA)
+            PME: NATL1_03031(psbA) NATL1_13251(psbA) NATL1_15721
+            PRC: EW14_0267
+            PRM: EW15_0316 EW15_1257 EW15_1631
+            AMR: AM1_0448(psbA) AM1_2166(psbA) AM1_2889(psbA)
+            GLP: Glo7428_1585 Glo7428_1586 Glo7428_3647 Glo7428_4147 Glo7428_4539
+            GEN: GM3709_1392 GM3709_2229 GM3709_2624
+            GEE: GM3708_2292 GM3708_2401
+            CHON: NIES4102_10890(psbA3_1) NIES4102_23970(psbA3_2) NIES4102_28100(psbA3_3) NIES4102_29250(psbA3_4) NIES4102_39080(psbA3_5)
+            MAR: MAE_10220(psbA1) MAE_10380(psbA2) MAE_10510(psbA3) MAE_10800(psbA4) MAE_58140(psbA5)
+            MPK: VL20_1424 VL20_2549 VL20_471 VL20_489 VL20_69
+            MIQ: B5D77_06365 B5D77_23915 B5D77_23950 B5D77_24045
+            MVZ: myaer102_18500(psbA1_1) myaer102_30290(psbA1_2) myaer102_44630(psbA1_3) myaer102_45030(psbA1_4)
+            CAN: Cyan10605_0832 Cyan10605_2194 Cyan10605_2424 Cyan10605_2588
+            CSN: Cyast_0043 Cyast_0351
+            CYL: AA637_07170(psbA) AA637_09285(psbA-2) AA637_09725(psbA-3)
+            HAO: PCC7418_0703 PCC7418_2704 PCC7418_2707 PCC7418_2976 PCC7418_3853
+            ENN: FRE64_03210(psbA) FRE64_06360(psbA) FRE64_07905(psbA) FRE64_17120(psbA)
+            CYT: cce_0267(psbA3) cce_0636(psbA5) cce_3411(psbA2) cce_3477(psbA4) cce_3501(psbA1)
+            CWA: CwatDRAFT_1423 CwatDRAFT_4668
+            CYP: PCC8801_1237 PCC8801_2016 PCC8801_3216 PCC8801_3850
+            CYH: Cyan8802_1267 Cyan8802_2041 Cyan8802_2904 Cyan8802_3899
+            CYC: PCC7424_0169 PCC7424_1049 PCC7424_1564 PCC7424_1706 PCC7424_2293
+            CYJ: Cyan7822_0979 Cyan7822_1825 Cyan7822_2968 Cyan7822_3753
+            CYN: Cyan7425_1059 Cyan7425_1498 Cyan7425_2987
+            TER: Tery_0182 Tery_0183 Tery_4763
+            MIC: Mic7113_0389 Mic7113_1458 Mic7113_4469 Mic7113_4779 Mic7113_6045 Mic7113_6509
+            ARP: NIES39_K03030(psbAIV) NIES39_K03080(psbAIII) NIES39_O04720(psbA1) NIES39_Q03010(psbAV) NIES39_R00140(psbAII)
+            PAGH: NIES204_02130 NIES204_13890
+            GEI: GEI7407_0907 GEI7407_1062 GEI7407_3172
+            OAC: Oscil6304_3571 Oscil6304_4595 Oscil6304_4600 Oscil6304_5520 Oscil6304_5900
+            ONI: Osc7112_1359 Osc7112_1569 Osc7112_1804 Osc7112_2216 Osc7112_2343 Osc7112_2347 Osc7112_4713
+            MPRO: BJP34_17160 BJP34_24285 BJP34_24290 BJP34_24295 BJP34_26615 BJP34_30930 BJP34_34600
+            CEP: Cri9333_0146 Cri9333_1654
+            GVI: gvip089(psbA) gvip234(psbA) gvip317(psbA) gvip373(psbA) gvip436(psbA)
+            GLJ: GKIL_0727(psbA) GKIL_2223(psbA) GKIL_2489(psbA) GKIL_2730(psbA) GKIL_3677(psbA) GKIL_4432(psbA)
+            ANA: all3572(psbAIV) alr3727(psbAII) alr3742(psbA) alr4592(psbAIII) alr4866(psbAI)
+            NPU: Npun_F1022 Npun_F3544 Npun_R2273 Npun_R5188 Npun_R5455
+            NOS: Nos7107_1207 Nos7107_4536 Nos7107_5324
+            NOP: Nos7524_0680 Nos7524_1111 Nos7524_2553 Nos7524_3595 Nos7524_4711
+            NON: NOS3756_02690 NOS3756_24560(psbAIII_1) NOS3756_25530(psbAIII_2) NOS3756_48190(psbAIII_3) NOS3756_49370
+            NFL: COO91_00146 COO91_02172 COO91_02474 COO91_02476 COO91_03302 COO91_07583
+            NOE: CLI64_01570(psbA) CLI64_09940(psbA) CLI64_17555(psbA) CLI64_24395(psbA) CLI64_28700(psbA)
+            NSH: GXM_00395 GXM_03906 GXM_04087 GXM_05274 GXM_05349 GXM_08162 GXM_09369
+            AVA: Ava_1583 Ava_1597 Ava_2138 Ava_2460 Ava_3553 Ava_4121
+            NAZ: Aazo_0830 Aazo_1652
+            ANB: ANA_C10396(psbA) ANA_C12048(psbA2) ANA_C20090(psbA3)
+            ACY: Anacy_0955 Anacy_1089 Anacy_2162 Anacy_4498 Anacy_5146
+            AWA: AA650_17430 AA650_21915 AA650_22165
+            ANN: EH233_16265(psbA) EH233_26380
+            CSG: Cylst_4245 Cylst_4246 Cylst_5689 Cylst_6493
+            CALO: Cal7507_0264 Cal7507_0265 Cal7507_0433 Cal7507_0641 Cal7507_5072 Cal7507_6145
+            CALT: Cal6303_0627 Cal6303_0711 Cal6303_4566 Cal6303_4567
+            CALH: IJ00_04375 IJ00_16005 IJ00_16025
+            RIV: Riv7116_0982 Riv7116_1256 Riv7116_1971 Riv7116_1973 Riv7116_5521 Riv7116_6244
+            FIS: FIS3754_23010 FIS3754_23540 FIS3754_23550 FIS3754_26650 FIS3754_44490 FIS3754_44500 FIS3754_48630
+            NSP: BMF81_03744(psbA2)
+            DOU: BMF77_01077(psbA2_1) BMF77_01268(psbA2_2) BMF77_03632(psbA2_3)
+            NCN: BZZ01_12005 BZZ01_14205 BZZ01_14435 BZZ01_24290 BZZ01_28565 BZZ01_29320
+            CTHE: Chro_0664 Chro_1030 Chro_1031 Chro_1141 Chro_4027 Chro_4335
+            PLP: Ple7327_0153 Ple7327_1125 Ple7327_1862 Ple7327_1884 Ple7327_1885 Ple7327_2923
+            SCS: Sta7437_0742 Sta7437_1935 Sta7437_3129 Sta7437_4687
+            STAN: STA3757_23390(psbA) STA3757_40700(psbA3_1) STA3757_43660(psbA3_2) STA3757_43930(psbA3_3) STA3757_45140(psbA3_4) STA3757_46560(psbA4)
+            VG: 10327406(psbA) 10328083(psbA) 15956789(PRAG_00108) 29122720(BJD26_gp043) 3294348(psbA) 3294661(psbA)
+REFERENCE   PMID:2499875
+  AUTHORS   Ravnikar PD, Debus R, Sevrinck J, Saetaert P, McIntosh L
+  TITLE     Nucleotide sequence of a second psbA gene from the unicellular cyanobacterium Synechocystis 6803.
+  JOURNAL   Nucleic Acids Res 17:3991 (1989)
+            DOI:10.1093/nar/17.10.3991
+  SEQUENCE  [syn:slr1311 sll1867]
+///

@@ -173,9 +173,10 @@ Usage
 
 Argument(s)
 
-        -h      --help  Help
-        -l      --level Log level [Default: FATAL]
-        -k      --ko    KEGG pathway (ko)
+        -h      --help      Help
+        -l      --level     Log level [Default: FATAL]
+        -k      --ko        KEGG pathway (ko)
+        -i      --infile    Input file
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;

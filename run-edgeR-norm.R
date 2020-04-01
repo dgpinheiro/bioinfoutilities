@@ -14,7 +14,7 @@ if("--help" %in% args) {
  
       Arguments:
       --in=someValue   		- input file path (*)
-      --groups=someValue	- group file path
+      --groups=someValue	- group file path [file with columns: id, name, group]
       --ignore=someValue	- columns to ignore
       --out=someValue   	- output file path (*)
       --help            	- print this Help
@@ -59,7 +59,7 @@ if ( ! file.exists(argsL[['in']]) ) {
 }
 ignorecols=c()
 if( ! is.null(argsL[['ignore']])) {
-	ignorecols=c(unlist(strsplit(argsL[['ignore']])))
+	ignorecols=c(unlist(strsplit(argsL[['ignore']],split=",")))
 }
 
 
@@ -94,6 +94,16 @@ if ( any(! ( g$id %in% samps )) ) {
 }
 
 
+if ( ! all( c('id', 'name', 'group') %in% colnames(g) ) ) {
+	sink(stderr())
+	cat(paste("\nERROR: Missing columns in group's file!\n\n", sep=""))
+	sink()
+	q(save="no")
+}
+
+
+
+
 rownames(x) <- x[[idcol]]
 
 df <- x[ , as.character(g$id)]
@@ -122,3 +132,5 @@ for (col in ignorecols) {
 }
 
 write.table(df.cpm[,c(ignorecols,samps.reordered)], file=argsL[['out']], quote=FALSE, sep="\t", row.names = FALSE, col.names = TRUE)
+
+

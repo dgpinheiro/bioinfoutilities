@@ -148,16 +148,19 @@ if(! is.null(argsL[['colnames.y']])) {
 
 xy.df <- merge(x=x.df, y=y.df, by.x=argsL[['by.x']], by.y=argsL[['by.y']], all.x=argsL[['all.x']], all.y=argsL[['all.y']])
 
+write.col.names <- FALSE
+
 if(! is.null(argsL[['out.label']])) {
 	out.label <- unlist(strsplit(argsL[['out.label']],","))
-	if ( length(colnames.y)+length(colnames.x)+1 == length(out.label)) {
+	if ( length(colnames.y)+length(colnames.x)-1 != length(out.label)) {
         	sink(stderr())
 	        cat("\nERROR: output labels must have the same number of selected colnames.x plus colnames.y plus identifier !\n\n")
         	sink()
 	        q(save="no")
 	}
 	colnames(xy.df) <- out.label
+	write.col.names <- TRUE
 }
 
-write.table(xy.df, file=argsL[['out']], col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
+write.table(xy.df, file=argsL[['out']], col.names=write.col.names, row.names=FALSE, quote=FALSE, sep="\t")
 
