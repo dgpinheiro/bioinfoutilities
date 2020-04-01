@@ -76,11 +76,23 @@ foreach my $ar_data (@data) {
 	die "Missing Parent ($_)" unless ($Parent);
 	my ($gene)=$F[8]=~/gene=([^;]+)\b/;	
 	
-	my ($transcript_id, $gene_id);
-	$transcript_id=$Parent;
-	$gene_id=((exists $GeneID{ $parent{ $transcript_id } }) ? $GeneID{ $parent{ $transcript_id } } : $parent{ $transcript_id }); 
+	my (@transcript_ids, $gene_id);
+	@transcript_ids=split(/,/,$Parent);
+	foreach my $transcript_id (@transcript_ids) {
+		unless (exists $parent{ $transcript_id }) {
+			die "Not found Parent (TranscriptID) for $transcript_id"
+		} else {
+			if ($F[2] =~/RNA/) {
+				unless (exists $GeneID{  $parent{ $transcript_id } }) {
+					die "Not found Parent (GeneID) for $parent{ $transcript_id }";
+				}
+			}
+		}
+
+		$gene_id=((exists $GeneID{ $parent{ $transcript_id } }) ? $GeneID{ $parent{ $transcript_id } } : $parent{ $transcript_id }); 
 	
-	$F[8]="gene_id \"$gene_id\"; ".(($gene) ? "gene_name=\"$gene\"; " : "")."transcript_id \"$transcript_id\";";
-	print join("\t", @F),"\n";
+		$F[8]="gene_id \"$gene_id\"; ".(($gene) ? "gene_name=\"$gene\"; " : "")."transcript_id \"$transcript_id\";";
+		print join("\t", @F),"\n";
+	}
 }
 
