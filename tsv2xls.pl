@@ -67,6 +67,12 @@ use strict;
 use warnings;
 use Readonly;
 use Getopt::Long;
+#use utf8;
+#use Encode;
+#use Encode::Guess;
+
+binmode(STDERR, ":utf8");
+binmode(STDOUT, ":utf8");
 
 use vars qw/$LOGGER/;
 
@@ -115,6 +121,8 @@ $LOGGER->logdie("Wrong intput file ($infile)") unless (-e $infile);
 # Create a new Excel workbook
 my $workbook = Spreadsheet::WriteExcel->new($outfile);
 
+$workbook->set_properties(utf8 => 1);
+
 # Add a worksheet
 my $worksheet = $workbook->add_worksheet();
 
@@ -129,7 +137,7 @@ $header_format->set_bold();
 my $col = 0;
 my $row = 0;
 
-open(IN, "<", $infile) or die $!;
+open(IN, '<:encoding(utf8)',$infile) or die $!;
 
 if ($hasheader) {
     my $header = <IN>;
