@@ -125,6 +125,12 @@ if(is.null(argsL[['groups']])) {
 	g <-read.delim( argsL[['groups']], header=TRUE, stringsAsFactor=FALSE )
 }
 
+if (any(!colnames(g) %in% c('id', 'name', 'group'))) {
+	sink(stderr())
+	cat(paste("\nERROR: Not found in groups header (", paste(colnames(g), collapse=", "), ") the required header columns (id, name, group) using TAB delimiter!\n\n", sep=""))
+	sink()
+	q(save="no")
+}
 
 if ( any(! ( g$id %in% samps )) ) {
 	sink(stderr())
