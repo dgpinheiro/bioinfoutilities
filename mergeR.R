@@ -27,6 +27,7 @@ if("--help" %in% args) {
       --skip.x                 - skip n lines from x file
       --skip.y                 - skip n files from y file
       --out.label=someValues   - output header labels
+      --print.out.label        - print header labels in output file (Enabled by default if --out.label is used)
       --help                   - print this Help
 
       Example:
@@ -149,6 +150,9 @@ if(! is.null(argsL[['colnames.y']])) {
 xy.df <- merge(x=x.df, y=y.df, by.x=argsL[['by.x']], by.y=argsL[['by.y']], all.x=argsL[['all.x']], all.y=argsL[['all.y']])
 
 write.col.names <- FALSE
+if(! is.null(argsL[['print.out.label']])) {
+	write.col.names <- TRUE
+}
 
 if(! is.null(argsL[['out.label']])) {
 	out.label <- unlist(strsplit(argsL[['out.label']],","))
