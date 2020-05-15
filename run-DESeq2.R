@@ -171,20 +171,13 @@ dds <- estimateSizeFactors(dds)
 sizeFactors(dds)
 
 if (is.na(tryCatch( 
-			dds <- estimateDispersions(dds,fitType="parametric") 
+		dds <- estimateDispersions(dds,fitType="parametric") 
 		  , 
 		  error=function(e) NA 
 		  ) )) {
 		dds <- estimateDispersionsGeneEst(dds)
 		dispersions(dds) <- mcols(dds)$dispGeneEst
 }
-
-normFactors <- matrix(runif(nrow(dds)*ncol(dds),0.5,1.5),
-                      ncol=ncol(dds),nrow=nrow(dds),
-                      dimnames=list(1:nrow(dds),1:ncol(dds)))
-
-normFactors <- normFactors / exp(rowMeans(log(normFactors)))
-normalizationFactors(dds) <- normFactors
 
 
 cat("DESeq2...\n")
