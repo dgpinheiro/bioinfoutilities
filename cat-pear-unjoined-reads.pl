@@ -115,6 +115,7 @@ $LOGGER->logdie("Missing output file") if (! defined $outfile);
 `paste $r1file $r2file > $outfile.tmp`;
 
 my $N='N' x $nbases;
+my $Q='!' x $nbases;
 
 if ( -e "$outfile.tmp" ) {
 	open(IN, "<", "$outfile.tmp") or $LOGGER->logdie($!);
@@ -137,7 +138,7 @@ if ( -e "$outfile.tmp" ) {
         } elsif ( ($. % 4) == 3) {
             print OUT '+',"\n";
         } elsif ( ($. % 4) == 0) {
-            $_=~s/\s+/$N/;
+            $_=~s/\s+/$Q/;
             print OUT $_,"\n",
         }
 	}
