@@ -135,7 +135,7 @@ if ( -e "$outfile.tmp" ) {
             $_=~s/\s+/$N/;
             print OUT $_,"\n",
         } elsif ( ($. % 4) == 3) {
-            print OUT '+';
+            print OUT '+',"\n";
         } elsif ( ($. % 4) == 0) {
             $_=~s/\s+/$N/;
             print OUT $_,"\n",
