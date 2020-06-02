@@ -108,7 +108,7 @@ if ($level) {
 
 $nthreads||=2;
 
-$LOGGER->logdie("Missing input file (kraken2 output)") if (!defined $infile);
+$LOGGER->logdie("Missing input file (kraken2/Kaiju output)") if (!defined $infile);
 $LOGGER->logdie("Wrong input file ($infile)") if (! -e $infile);
 
 $LOGGER->logdie("Missing output directory") if (! defined $outdir);
@@ -145,7 +145,15 @@ my %lineage;
 while(<IN>) {
     chomp;
     my ($status, $read, $taxinfo) = split(/\t/, $_);
-    my ($taxid)=$taxinfo=~/taxid (\d+)/;
+    my ($taxid);
+    if ($taxinfo=~/taxid (\d+)/) {
+        $taxid=$1;
+    } elsif ($taxinfo=~/^\d+$/) {
+        $taxid=$taxinfo;
+    } else {
+        $LOGGER->logdie("TaxInfo column not recognized ($taxinfo)");
+    }
+
     if ($status eq 'C') {
         
         if ($taxid) {
@@ -189,12 +197,12 @@ Usage
 
 Argument(s)
 
-	-h	--help			Help
-	-l	--level			Log level [Default: FATAL]
-	-i	--infile		Input file
-	-o	--outdir		Output directory
-    -t  --threads       Number of threads [Default: 2]
-    -d  --defines       Define base name of output file for each taxon id. Example -d 2="Bacteria.txt"
+    -h  --help      Help
+    -l  --level     Log level [Default: FATAL]
+    -i  --infile    Input file
+    -o  --outdir    Output directory
+    -t  --threads   Number of threads [Default: 2]
+    -d  --defines   Define base name of output file for each taxon id. Example -d 2="Bacteria.txt"
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
