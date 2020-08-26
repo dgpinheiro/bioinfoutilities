@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+# Limite estabelecido na ferramenta online
+use constant REFLIMIT=>75;
+
 my $dataf = $ARGV[0];
 my $email = $ARGV[1];
 
@@ -25,10 +28,20 @@ close(IN);
 
 for (my $f=0; $f<$#file; $f++) {
     my @other;
+    my $ds=0;
+    my $c=1;
     for (my $g=$f+1; $g<=$#file; $g++) {
-        push(@other, $file[$g]);
+        if ($c > REFLIMIT) {
+            $c=1;
+            $ds++;
+        }
+        push(@{$other[$ds]}, $file[$g]);
+        $c++;
     }
-    #print $file[$f] . ' x ' . join(",", @other)."\n";
-    my $cmd="GGDCrobot.pl -q $file[$f] -r ".join(",", @other). ' -e '.$email.' ';
-    print `$cmd`;
+    foreach my $dsc (0..$#other) {
+        #print $file[$f] . ' x ' . join(",", @{ $other[$dsc] })." (Dataset ".($dsc+1).")\n";
+        print $file[$f] . ' x ' . scalar(@{ $other[$dsc] })." genomes (Dataset ".($dsc+1).")\n";
+        my $cmd="./robot.pl -q $file[$f] -r ".join(",", @{ $other[$dsc] }). ' -e bioinfo.fcav@gmail.com ';
+        print `$cmd`;
+    }
 }
