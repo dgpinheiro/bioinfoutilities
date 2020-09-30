@@ -76,13 +76,14 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $indir, $formula);
+my ($level, $indir, $formula, $useddh);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "i|indir=s"=>\$indir,
-            "f|formula=i"=>\$formula
+            "f|formula=i"=>\$formula,
+            "d|ddh"=>\$useddh
     ) or &Usage();
 
 
@@ -102,13 +103,15 @@ if ($level) {
 
 $formula||=2;
 
+my $method = (($useddh) ? 'ddh' : 'distance');
 
-my %availform = (1=>4,
-                 2=>8,
-                 3=>12
+my %availform = (1=>{'distance'=>4,  'ddh'=>2 },
+                 2=>{'distance'=>8,  'ddh'=>6 },
+                 3=>{'distance'=>12, 'ddh'=>10}
                 );
 
 $LOGGER->logdie("Wrong formula ($formula)") unless (exists $availform{$formula});
+$LOGGER->logdie("Wrong formula/method ($formula/$method)") unless (exists $availform{$formula}->{$method});
 
 my %distance;
 foreach my $f (glob("$indir/ggdc_results_?*.csv")) {
@@ -118,9 +121,9 @@ foreach my $f (glob("$indir/ggdc_results_?*.csv")) {
         chomp;
         next if ($.<=2);
         my @F = split(/,/, $_);
-        $LOGGER->info("Data: ".join("\t", $F[0],$F[1],$F[$availform{$formula}]));
-        $distance{$F[0]}->{$F[1]} = $F[$availform{$formula}];
-        $distance{$F[1]}->{$F[0]} = $F[$availform{$formula}];
+        $LOGGER->info("Data: ".join("\t", $F[0],$F[1],$F[$availform{$formula}->{$method}]));
+        $distance{$F[0]}->{$F[1]} = $F[$availform{$formula}->{$method}];
+        $distance{$F[1]}->{$F[0]} = $F[$availform{$formula}->{$method}];
     }
     close(IN);
 }
@@ -147,10 +150,11 @@ Usage
 
 Argument(s)
 
-        -h      --help  Help
-        -l      --level Log level [Default: FATAL]
-        -i      --indir    Input directory (GGDC results directory)
+        -h      --help      Help
+        -l      --level     Log level [Default: FATAL]
+        -i      --indir     Input directory (GGDC results directory)
         -f      --formula   Formula (1, 2 or 3) [Default: 2]
+        -d      --ddh       DDH instead of distance [Default: Off]
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
