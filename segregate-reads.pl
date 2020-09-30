@@ -80,7 +80,8 @@ my (	$level,
 	$nbases,
 	$outdir,
     $nthreads,
-    %defines
+    %defines,
+    $append
 	);
 
 Usage("Too few arguments") if $#ARGV < 0;
@@ -89,7 +90,8 @@ GetOptions(	"h|?|help" => sub { &Usage(); },
 		"i|infile=s"=>\$infile,
         "t|threads=s"=>\$nthreads,
         "d|define=s" => \%defines,
-		"o|outdir=s"=>\$outdir
+		"o|outdir=s"=>\$outdir,
+        "a|append"=>\$append
     ) or &Usage();
 
 if ($level) {
@@ -118,7 +120,11 @@ my %valid;
 
 my %fh;
 foreach my $id (keys %defines) {
-    $fh{$id} =  FileHandle->new(">$outdir/$defines{$id}");
+    if (defined $append) {
+        $fh{$id} =  FileHandle->new(">>$outdir/$defines{$id}");
+    } else {
+        $fh{$id} =  FileHandle->new(">$outdir/$defines{$id}");
+    }        
     if (!defined $fh{$id}) {
         $fh{$id}->close();
     }
@@ -128,7 +134,7 @@ foreach my $id (keys %defines) {
     foreach my $k ( split(/;/, $taxids) ) {
         $valid{$k}->{$id} = undef;
     }
-    my $downtaxa=`taxonkit list --show-rank --show-name --ids $id`;
+    my $downtaxa=`taxonkit list -j $nthreads --show-rank --show-name --ids $id`;
     my @taxa = split("\n", $downtaxa);
     foreach my $t (@taxa) {
         my ($tid) = $t=~/^\s*(\d+)/;
@@ -172,15 +178,19 @@ while(<IN>) {
         }
         
     } else {
-            foreach my $k (keys %defines) {
-                #print { $fh{$k} } $status,"\t",$read,"\n";
-                print { $fh{$k} } $read,"\n";
-            }
+#            foreach my $k (keys %defines) {
+#                #print { $fh{$k} } $status,"\t",$read,"\n";
+#                print { $fh{$k} } $read,"\n";
+#            }
     }        
 }
 
 close(IN);
 
+
+foreach my $k ( keys %defines ) {
+    $fh{$k}->close();    
+}
 
 # Subroutines
 
@@ -203,6 +213,7 @@ Argument(s)
     -o  --outdir    Output directory
     -t  --threads   Number of threads [Default: 2]
     -d  --defines   Define base name of output file for each taxon id. Example -d 2="Bacteria.txt"
+    -a  --append    Append instead of overwrite output files
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
