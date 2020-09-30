@@ -41,7 +41,7 @@ for (my $f=0; $f<$#file; $f++) {
     foreach my $dsc (0..$#other) {
         #print $file[$f] . ' x ' . join(",", @{ $other[$dsc] })." (Dataset ".($dsc+1).")\n";
         print $file[$f] . ' x ' . scalar(@{ $other[$dsc] })." genomes (Dataset ".($dsc+1).")\n";
-        my $cmd="./robot.pl -q $file[$f] -r ".join(",", @{ $other[$dsc] }). ' -e bioinfo.fcav@gmail.com ';
+        my $cmd="./robot.pl -q $file[$f] -r ".join(",", @{ $other[$dsc] }). ' -e '.$email;
         print `$cmd`;
     }
 }
