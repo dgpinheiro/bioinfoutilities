@@ -21,6 +21,7 @@ if("--help" %in% args) {
       --out=someValue          - output file
       --skip.x                 - skip n lines from x file
       --out.label=someValues   - output header labels
+      --no.out.label           - remove output header labels
       --help                   - print this Help
 
       Example:
@@ -80,6 +81,10 @@ if( is.null(argsL[['skip.x']])) {
 	argsL[['skip.x']] = 0
 }
 
+if( is.null(argsL[['no.out.label']])) {
+	argsL[['no.out.label']] = FALSE
+}
+
 
 x.df <- read.delim(argsL[['x']], header=argsL[['noh.x']], stringsAsFactors=FALSE,skip=argsL[['skip.x']], sep="\t")
 
@@ -115,5 +120,5 @@ if(! is.null(argsL[['out.label']])) {
 	colnames(x.new.df) <- out.label
 }
 
-write.table(x.new.df, file=argsL[['out']], col.names=TRUE, row.names=FALSE, quote=FALSE, sep="\t")
+write.table(x.new.df, file=argsL[['out']], col.names=(!argsL[['no.out.label']]), row.names=FALSE, quote=FALSE, sep="\t")
 
