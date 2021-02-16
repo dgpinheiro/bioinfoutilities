@@ -120,32 +120,17 @@ while(my $l = <IN>) {
 			print OUT ' / '.$tax{ $hr_tax->{ $id } };
 		} else {
 			my ($common_tax_id);
-            my $try=1;
-            while ( (! -e "/tmp/$id.tab") && ($try<=3 ) ) {
-                `curl -s https://www.uniprot.org/uniref/$id.tab > /tmp/$id.tab`;
-                $try++;
-                sleep(3);
-            }
+            my ($id2)=$id=~/UniRef100_(\S+)/;
 
-            open(TST, "<", "/tmp/$id.tab") or die "File not found /tmp/$id.tab";
-            my $first=<TST>;
-            chomp($first);
-            close(TST);
+            $common_tax_id=&getCommonTaxId($hr_annot, $id, "https://www.uniprot.org/uniref/#ID#.tab", 6);
+            $common_tax_id=&getCommonTaxId($hr_annot, $id2, "https://pir3.uniprot.org/uniref/?query=#ID#&fil=identity%3A1.0&columns=id%2Creviewed%2Corganism-id%2Cname&sort=score&format=tab", 3) unless ($common_tax_id);
+            $common_tax_id=&getCommonTaxId($hr_annot, $id2, "https://www.uniprot.org/uniparc/?query=#ID#&columns=id%2Corganism-id&format=tab", 2) unless ($common_tax_id);
 
-            if ($first=~/^<!DOCTYPE/) {
-                $common_tax_id=$hr_annot->{$id}->{'taxid'} if ($hr_annot->{$id}->{'taxid'});
-            } else {
-                $common_tax_id = `cat /tmp/$id.tab | cut -f 6  | tail -n+2 | GetLCA.pl`;
-                chomp($common_tax_id);
-                $common_tax_id||=1;
-            }
-            
 			unless ($common_tax_id) {
 				die "Not found common_tax_id FOR uniref_id=$id";
 			}
-            if ($common_tax_id !~ /^\d+$/) {
-                die "This is not a number $common_tax_id";
-            }
+
+            $common_tax_id||=1;
             $common_tax_id+=0;
             
 			$hr_tax->{ $id } = $common_tax_id;
@@ -171,3 +156,45 @@ close(IN);
 close(OUT);
 
 $hr_annot = undef;
+			
+
+sub getCommonTaxId {
+    my ($hr_annot, $lid, $url, $ncut) = @_;
+    my $try=1;
+    $url=~s/#ID#/$lid/;
+    while ( (! -e "/tmp/$lid.tab") && ($try<=3 ) ) {
+        `curl -sL "$url" > /tmp/$lid.tab`;
+        $try++;
+        sleep(3);
+    }
+            
+    my $first="";
+    if ((-e "/tmp/$lid.tab")&&(! -z "/tmp/$lid.tab")) {
+        open(TST, "<", "/tmp/$lid.tab") or die "File not found /tmp/$lid.tab";
+        $first=<TST>;
+        chomp($first);
+        close(TST);
+    } else {
+        warn("Empty or non existent file: /tmp/$lid.tab");
+        unlink("/tmp/$lid.tab");
+        return(undef);
+    }
+
+    if ($first=~/^<!DOCTYPE/) {
+        if ($hr_annot->{$lid}->{'taxid'}) {
+            return($hr_annot->{$lid}->{'taxid'});
+        } else {
+            return(undef);
+        }
+    } else {
+        my $ctid = `cat /tmp/$lid.tab | cut -f $ncut  | tail -n+2 | sed 's/;//g' | replace_merged_taxid.pl | GetLCA.pl`;
+        chomp($ctid);
+        if ($ctid) {
+            if ($ctid !~ /^\d+$/) {
+                warn "Not a number found for $lid";
+                return(undef);
+            }
+        }            
+        return($ctid);
+    }
+}
