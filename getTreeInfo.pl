@@ -16,6 +16,8 @@ die "Missing annotation file (.txt)" unless ($annfile);
 die "Wrong input file ($annfile)" unless (-e $annfile);
 
 
+$|=1;
+
 my $hr_annot;
 
 if (-e "$annfile.dump") {
@@ -163,9 +165,10 @@ sub getCommonTaxId {
     my $try=1;
     $url=~s/#ID#/$lid/;
     while ( (! -e "/tmp/$lid.tab") && ($try<=3 ) ) {
-        `curl -sL "$url" > /tmp/$lid.tab`;
+        `(curl -sL "$url" > /tmp/$lid.tab) && (sync)`;
         $try++;
         sleep(3);
+        `sync`;
     }
             
     my $first="";
