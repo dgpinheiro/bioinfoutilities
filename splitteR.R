@@ -82,6 +82,8 @@ if( is.null(argsL[['skip.x']])) {
 }
 
 if( is.null(argsL[['no.out.label']])) {
+	argsL[['no.out.label']] = TRUE
+} else {
 	argsL[['no.out.label']] = FALSE
 }
 
@@ -120,5 +122,5 @@ if(! is.null(argsL[['out.label']])) {
 	colnames(x.new.df) <- out.label
 }
 
-write.table(x.new.df, file=argsL[['out']], col.names=(!argsL[['no.out.label']]), row.names=FALSE, quote=FALSE, sep="\t")
+write.table(x.new.df, file=argsL[['out']], col.names=argsL[['no.out.label']], row.names=FALSE, quote=FALSE, sep="\t")
 

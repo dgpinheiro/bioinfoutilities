@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile, $fastalinewidth);
+my ($level, $infile, $informat, $outformat, $outfile, $prefix, $listfile, $fastalinewidth, $replacefile);
 
 #Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -87,6 +87,7 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "of|outformat=s"=>\$outformat,
             "p|prefix=s"=>\$prefix,
             "l|listfile=s"=>\$listfile,
+            "r|replacefile=s"=>\$replacefile,
             "w|fastalinewidth=i"=>\$fastalinewidth
     ) or &Usage();
 
@@ -138,6 +139,8 @@ if ($outfile) {
     $fhout = \*STDOUT;
 }
 
+$fhout->autoflush();
+
 use Bio::SeqIO;
 
 my $in  = Bio::SeqIO->new(-fh=>$fhin,  -format=>$informat);
@@ -148,17 +151,45 @@ if ($listfile) {
     $fhlist = FileHandle->new;
     $fhlist->open(">$listfile");
 }
+$fhlist->autoflush();
+
+my %replace;
+if ($replacefile) {
+    $LOGGER->logdie("Wrong replace file (-r/--replacefile)") unless (-e $replacefile);
+    open(RF, "<", $replacefile) or $LOGGER->logdie($!);
+    while(<RF>) {
+        chomp;
+        my ($newname, $curname) = split(/\t/, $_);
+        $replace{ $curname } = $newname;
+    }
+    close(RF);
+}
 
 my $c = 1;
 while ( my $seq = $in->next_seq() ) {
-    my $hex = sprintf("%010X", $c);
-    if ($listfile) {
-        print { $fhlist } $seq->display_id(),"\t",$prefix.$hex,"\n";
+    
+    my $curname = $seq->display_id();
+    my $newname = $curname;
+    if (exists $replace{$curname}) {
+        $newname = $replace{$curname};
+    } else {
+        my $hex = sprintf("%010X", $c);
+        $newname = $prefix.$hex;
     }
-    $seq->display_id($prefix.$hex);
+    
+    $seq->display_id($newname);
+
+    if ($listfile) {
+        print { $fhlist } $curname,"\t",$newname,"\n";
+    }
+
     $out->write_seq( $seq );
     $c++;
 }
+
+$fhout->close();
+$fhlist->close();
+$fhin->close();
 
 # Subroutines
 
@@ -183,6 +214,7 @@ Argument(s)
         -p      --prefix            Prefix [Default: SEQ]
         -l      --listfile          List file with old and new name
         -w      --fastalinewidth    FASTA line width
+        -r      --replacefile       List file with new name and current name (which will be replaced)
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
