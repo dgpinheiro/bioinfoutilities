@@ -68,15 +68,18 @@ use warnings;
 use Readonly;
 use Getopt::Long;
 
-use constant MERGED_TAB_FILE_PATH=>"/usr/local/bioinfo/Krona/KronaTools/taxonomy/merged.tab";
 
-
-use vars qw/$LOGGER/;
+use vars qw/$LOGGER $MERGED_DMP_FILE_PATH/;
 
 INIT {
     use Log::Log4perl qw/:easy/;
     Log::Log4perl->easy_init($FATAL);
     $LOGGER = Log::Log4perl->get_logger($0);
+    
+    use File::Basename;
+    use Cwd 'abs_path';
+
+    $MERGED_DMP_FILE_PATH=dirname(abs_path(`readlink -f \$(which GetLCA.pl)`)).'/../taxonomy/merged.dmp';
 }
 
 my ($level, $mfile, $infile);
@@ -106,7 +109,9 @@ if ($level) {
     Log::Log4perl->easy_init($LEVEL{$level});
 }
 
-$mfile||=MERGED_TAB_FILE_PATH;
+$mfile||=$MERGED_DMP_FILE_PATH;
+
+$LOGGER->logdie("Not found Krona GetLCA.pl executable. Please, check if Krona GetLCA.pl path is on the PATH environment variable. Or put the value of NCBI taxonomy merged.dmp path file in --mfile/-m parameter.") unless ($mfile);
 
 my $hr_data;
 
@@ -116,7 +121,10 @@ if (-e "$mfile.dump") {
     open(MFILE, "<", $mfile) or $LOGGER->logdie($!);
     while(<MFILE>) {
         chomp;
-        my ($old, $new) = split(/\t/, $_);
+        #12      |       74109   |
+        #30      |       29      |
+        $_=~s/\s+//g;
+        my ($old, $new) = split(/\|/, $_);
         $hr_data->{ $old } = $new;
     }
     close(MFILE);
@@ -163,7 +171,7 @@ $fh->close();
 sub Usage {
     my ($msg) = @_;
 
-    my $mfile||=MERGED_TAB_FILE_PATH;
+    my $mfile||=$MERGED_DMP_FILE_PATH;
 
 	Readonly my $USAGE => <<"END_USAGE";
 Daniel Guariz Pinheiro (dgpinheiro\@gmail.com)
@@ -178,7 +186,7 @@ Argument(s)
         -h      --help      Help
         -l      --level     Log level [Default: FATAL]
         -i      --infile    Input file
-        -m      --merged    merged.tab file [Default: $mfile]
+        -m      --merged    merged.dmp file [Default: $mfile]
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
