@@ -158,7 +158,7 @@ while(<$fhin>) {
                 $gene_count{$ID} = 0;
             }
             $gene{ $ID }->{ $F[0] }->{ $F[6] }->{ $F[3] }->{ $F[4] } = { 'data'=>\@F, 'name'=>$ID.'_'.++$gene_count{$ID} };
-        } elsif (($F[2] eq 'RNA')||($F[2] eq 'miRNA')||($F[2] eq 'snoRNA')||($F[2] eq 'snRNA')||($F[2] eq 'RNase_P_RNA')) {
+        } elsif (($F[2] eq 'RNA')||($F[2] eq 'miRNA')||($F[2] eq 'snoRNA')||($F[2] eq 'snRNA')||($F[2] eq 'RNase_P_RNA')||($F[2] eq 'pseudogenic_tRNA')) {
             print RNA $_,"\n";
             unless (exists $rna{ $ID }) {
                 $rna_count{$ID} = 0;
