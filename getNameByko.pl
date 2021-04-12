@@ -68,6 +68,8 @@ use warnings;
 use Readonly;
 use Getopt::Long;
 
+use File::Temp qw/ tempfile tempdir /;
+
 use vars qw/$LOGGER/;
 
 INIT {
@@ -76,13 +78,14 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level,$koid,$infile);
+my ($level,$koid,$infile,$dbdir);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "k|ko=s"=>\$koid,
-            "i|infile=s"=>\$infile
+            "i|infile=s"=>\$infile,
+            "d|db=s"=>\$dbdir
     ) or &Usage();
 
 
@@ -98,6 +101,19 @@ if ($level) {
     'ALL'   =>$ALL);
     $LOGGER->logdie("Wrong log level ($level). Choose one of: ".join(', ', keys %LEVEL)) unless (exists $LEVEL{$level});
     Log::Log4perl->easy_init($LEVEL{$level});
+}
+
+my $dir;
+if ($dbdir) {
+    
+    $LOGGER->logdie("Missing DB directory ($dbdir)") unless (-d $dbdir);
+
+    $dir=$dbdir;
+
+} else {
+
+    $dir = tempdir('getNameByko_XXXXX', DIR => '.' , CLEANUP => 1 );
+
 }
 
 my %ko;
@@ -126,32 +142,52 @@ $ua->agent("MyApp/0.1 ");
 
 
 foreach my $kid (keys %ko) {
-    # Create a request
-    my $req = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$kid);
-    $req->content_type('application/x-www-form-urlencoded');
-    $req->content('query=libwww-perl&mode=dist');
-    
-    # Pass request to the user agent and get a response back
-    my $res = $ua->request($req);
-    
-    # Check the outcome of the response
-    if ($res->is_success()) {
-        my $set = undef;
-        my $content = $res->content();
-        foreach my $line ( split(/\n/, $content) ) {
-            if (($line =~ /^NAME/)||($set)) {
-                last if (($set)&&($line=~/^\S+/));
-                $set = 1;
-                my ($kdesc) = $line=~/^(?:NAME)?\s+(.+)/;
-                $ko{$kid}.=$kdesc;
-    
-            }
+    my @content_line;
+    if ( ( ! -e "$dir/KO/$kid.txt") || ( -z "$dir/KO/$kid.txt") ) {
+        # Create a request
+        my $req = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$kid);
+        $req->content_type('application/x-www-form-urlencoded');
+        $req->content('query=libwww-perl&mode=dist');
+        
+        # Pass request to the user agent and get a response back
+        my $res = $ua->request($req);
+        
+        # Check the outcome of the response
+        if ($res->is_success()) {
+            my $content = $res->content();
+
+            @content_line = split(/\n/, $content);
+
+            mkdir("$dir/KO") unless (-d "$dir/KO");
+
+            open(KO, ">", "$dir/KO/$kid.txt") or $LOGGER->logdie($!);
+            print KO $content;
+            close(KO);
+        }
+        else {
+            print $res->status_line, "\n";
+        }
+        sleep(3);
+
+    } else {
+        open(KO, "<", "$dir/KO/$kid.txt") or $LOGGER->logdie($!);
+        while(<KO>) {
+            chomp;
+            push(@content_line, $_);
+        }
+        close(KO);
+    }        
+     
+    my $set = undef;
+    foreach my $line ( @content_line ) {
+        if ( ( $line =~ /^NAME/ ) || ($set) ) {
+            last if ( ($set) && ( $line =~ /^\S+/ ) );
+            $set = 1;
+            my ($kdesc) = $line =~ /^(?:NAME)?\s+(.+)/;
+            $ko{$kid} .= $kdesc;
+
         }
     }
-    else {
-        print $res->status_line, "\n";
-    }
-    sleep(3);
 }
 
 
@@ -177,6 +213,7 @@ Argument(s)
         -l      --level     Log level [Default: FATAL]
         -k      --ko        KEGG pathway (ko)
         -i      --infile    Input file
+        -d      --db        Database directory of KEGG files
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;

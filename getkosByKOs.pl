@@ -86,7 +86,7 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "K|KO=s"=>\$KOid,
             "i|infile=s"=>\$infile,
             "o|outprefix=s"=>\$outprefix,
-            "k|keep"=>\$keep,
+            "p|keep"=>\$keep,
             "d|db=s"=>\$dbdir,
             "ih|ignore_human"=>\$ignorehuman
     ) or &Usage();
@@ -116,7 +116,7 @@ my %KO;
 
 unless ($KOid) {
     unless ($infile) {
-        $LOGGER->logdie("Missing ko info: id (-k) or input file (-i).");
+        $LOGGER->logdie("Missing KO info: id (-K) or input file (-i).");
     } else {
         open(IN, "<", $infile) or $LOGGER->logdie($!);
         while(<IN>) {
@@ -145,14 +145,15 @@ if ($keep) {
     }
     mkdir($dir);
 } else {
-    $dir = tempdir(basename($outprefix).'XXXXX', DIR => dirname($outprefix), CLEANUP => (($keep) ? 0 : 1) );
+    $dir = tempdir(basename($outprefix).'_XXXXX', DIR => dirname($outprefix), CLEANUP => (($keep) ? 0 : 1) );
 }
 
 foreach my $kid (keys %KO) {
 
     my @content_line;
+    
+    if ( ( ! -e "$dir/KO/$kid.txt") || ( -z "$dir/KO/$kid.txt") ) {
 
-    if (! -e "$dir/$kid.txt") { 
         # Create a request
         my $req = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/ko:'.$kid);
         $req->content_type('application/x-www-form-urlencoded');
@@ -164,7 +165,8 @@ foreach my $kid (keys %KO) {
         if ($res->is_success()) {
             my $content = $res->content();
             @content_line = split(/\n/, $content);
-            open(KO, ">", "$dir/$kid.txt") or $LOGGER->logdie($!);
+            mkdir("$dir/KO") unless (-d "$dir/KO");
+            open(KO, ">", "$dir/KO/$kid.txt") or $LOGGER->logdie($!);
             print KO $content;
             close(KO);
             sleep(3);
@@ -173,7 +175,7 @@ foreach my $kid (keys %KO) {
             next;
         }
     } else {
-        open(KO, "<", "$dir/$kid.txt") or $LOGGER->logdie($!);
+        open(KO, "<", "$dir/KO/$kid.txt") or $LOGGER->logdie($!);
         while(<KO>) {
             chomp;
             push(@content_line, $_);
@@ -210,9 +212,13 @@ foreach my $kid (keys %KO) {
                     last;
                 } else {
                     $set_pathway = 1;
-                    if ($line=~/\s+((?:ko|M)\d{5})\s+.*/) {
+                    if ($line=~/\s+((?:ko)\d{5})\s+.*/) {
                         my $ko = $1;
                         $KO{$kid}->{'ko'}->{$ko} = undef;
+                    } elsif ($line=~/\s+((?:M)\d{5})\s+.*/) {
+                        # Not used
+                        my $mo = $1;
+                        $KO{$kid}->{'M'}->{$mo} = undef;
                     }
                 }
             }
@@ -234,7 +240,8 @@ foreach my $kid (keys %KO) {
 
         my @content_line;
 
-        if (! -e "$dir/$pid.txt") { 
+        if ( ( ! -e "$dir/ko/$pid.txt") || ( -z "$dir/ko/$pid.txt") ) {
+
             # Create a request
             my $req = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$pid);
             $req->content_type('application/x-www-form-urlencoded');
@@ -246,7 +253,10 @@ foreach my $kid (keys %KO) {
             if ($res->is_success()) {
                 my $content = $res->content();
                 @content_line = split(/\n/, $content);
-                open(KO, ">", "$dir/$pid.txt") or $LOGGER->logdie($!);
+
+                mkdir("$dir/ko") unless (-d "$dir/ko");
+
+                open(KO, ">", "$dir/ko/$pid.txt") or $LOGGER->logdie($!);
                 print KO $content;
                 close(KO);
                 sleep(3);
@@ -255,7 +265,7 @@ foreach my $kid (keys %KO) {
                 next;
             }
         } else {
-            open(KO, "<", "$dir/$pid.txt") or $LOGGER->logdie($!);
+            open(KO, "<", "$dir/ko/$pid.txt") or $LOGGER->logdie($!);
             while(<KO>) {
                 chomp;
                 push(@content_line, $_);
@@ -323,7 +333,7 @@ foreach my $kid (keys %KO) {
                             my $mid = $1;
                             my @m_content_line;
                             
-                            if (! -e "$dir/$mid.txt") { 
+                            if ( ( ! -e "$dir/M/$mid.txt") || ( -z "$dir/M/$mid.txt") ) {
                                 # Create a request
                                 my $m_req = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$mid);
                                 $m_req->content_type('application/x-www-form-urlencoded');
@@ -335,7 +345,10 @@ foreach my $kid (keys %KO) {
                                 if ($m_res->is_success()) {
                                     my $m_content = $m_res->content();
                                     @m_content_line = split(/\n/, $m_content);
-                                    open(MO, ">", "$dir/$mid.txt") or $LOGGER->logdie($!);
+                                    
+                                    mkdir("$dir/M") unless (-d "$dir/M");
+                                    
+                                    open(MO, ">", "$dir/M/$mid.txt") or $LOGGER->logdie($!);
                                     print MO $m_content;
                                     close(MO);
                                     sleep(3);
@@ -344,7 +357,8 @@ foreach my $kid (keys %KO) {
                                     next;
                                 }
                             } else {
-                                open(MO, "<", "$dir/$mid.txt") or $LOGGER->logdie($!);
+                                    
+                                open(MO, "<", "$dir/M/$mid.txt") or $LOGGER->logdie($!);
                                 while(<MO>) {
                                     chomp;
                                     push(@m_content_line, $_);
@@ -421,11 +435,11 @@ Argument(s)
 
         -h      --help          Help
         -l      --level         Log level [Default: FATAL]
-        -K      --ko            KEGG Orthology ID (KO)
+        -K      --KO            KEGG Orthology ID (KO)
         -i      --infile        Input file
         -o      --outprefix     Output prefix
-        -k      --keep          Keep temporary directory
-        -d      --db            Database
+        -p      --keep          Keep temporary directory [True if -d has value]
+        -d      --db            Database directory, i.e. with "KO/" (KEGG Orthology), "ko/" (KEGG Reference Pathway), and "M/" (KEGG Modules) directories
         -ih     --ignore_human  Ignore KEGG pathways specific from "Human Diseases" category
 
 END_USAGE
