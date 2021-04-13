@@ -391,15 +391,23 @@ foreach my $kid (keys %kin) {
         
         my $cat = 'uniprot';
         
-        print STDERR "Searching $kid in UniProt ...\t";
+        print STDERR "Searching $kid in UniProt ... ";
+        
+        my $seqobj;
         
         if ( ( ! -e "$tmpdir/$cat/$kid.txt") || ( -z "$tmpdir/$cat/$kid.txt") ) {
             
+            print STDERR " DOWNLOADING ";
+                                
+            my $auxseqout = Bio::SeqIO->new( -file   => ">$tmpdir/$cat/$kid.txt", 
+                                             -format => 'swiss', 
+                                             -flush  => 0 );
+
             # Create a request
             my $req_k = HTTP::Request->new(GET => 'https://www.uniprot.org/uniprot/'.$kid.'.txt');
             $req_k->content_type('application/x-www-form-urlencoded');
             $req_k->content('query=libwww-perl&mode=dist');
-            sleep(1);
+            #sleep(1);
             
             # Pass request to the user agent and get a response back
             my $res_k = $ua->request($req_k);
@@ -410,48 +418,50 @@ foreach my $kid (keys %kin) {
             
             } else {
                 $LOGGER->logwarn( $res_k->status_line );
+                next;
             }
             
-            
-            open(CONTENT, ">", "$tmpdir/$cat/$kid.embl") or $LOGGER->logdie($!);
-            print CONTENT $content_k;
-            close(CONTENT);
-        
+                my $auxseqin = Bio::SeqIO->new( -string=> $content_k, 
+                                                -format => 'swissdriver');
+                
+                $seqobj = $auxseqin->next_seq();
+                
+                $auxseqout->write_seq($seqobj);
+
         } else {
-            open(CONTENT, "<", "$tmpdir/$cat/$kid.embl") or $LOGGER->logdie($!);
-            while(<CONTENT>) {
-                $content_k.=$_;
-            }
-            close(CONTENT);
+            
+                my $auxseqin = Bio::SeqIO->new( -file   => "$tmpdir/$cat/$kid.txt", 
+                                                -format => 'swissdriver' );
+                $seqobj = $auxseqin->next_seq();
         }
         
         my @n;
         my $name=$kid;
         
-        my @gn;
-        while ($content_k=~/^GN\s+(.*)/mg) {
-            push(@gn, $1);
-        }
-        my $joingn=join(' ',@gn);
-        if ($joingn) {
-            my @n;
-            while($joingn=~/\S+=([^;]+)/g) {
-                my $eachn = $1;
-                $eachn=~s/\s\{[^\}]+\}//;
-                push(@n, $eachn);
-            }
-            $name=join(', ', @n);
-        }
+        #my @gn;
+        #while ($content_k=~/^GN\s+(.*)/mg) {
+        #    push(@gn, $1);
+        #}
+        #my $joingn=join(' ',@gn);
+        #if ($joingn) {
+        #    my @n;
+        #    while($joingn=~/\S+=([^;]+)/g) {
+        #        my $eachn = $1;
+        #        $eachn=~s/\s\{[^\}]+\}//;
+        #        push(@n, $eachn);
+        #    }
+        #    $name=join(', ', @n);
+        #}
+        #
+        #my $seq;
+        #do {
+        #    local *STDERR;
+        #    open(STDERR, ">", "./getInfoByK.log.err.txt") or $LOGGER->logdie($!);
+        #    my $seqin = Bio::SeqIO->new(-string => $content_k, -format => 'swissdriver', -verbose=>-1);
+        #    $seq = $seqin->next_seq();
+        #};
         
-        my $seq;
-        do {
-            local *STDERR;
-            open(STDERR, ">", "./getInfoByK.log.err.txt") or $LOGGER->logdie($!);
-            my $seqin = Bio::SeqIO->new(-string => $content_k, -format => 'embl', -verbose=>-1);
-            $seq = $seqin->next_seq();
-        };
-        
-        my @species = $seq->species()->classification();
+        my @species = $seqobj->species()->classification();
         
         my $lineage = join(";", reverse(@species));
         
@@ -464,9 +474,9 @@ foreach my $kid (keys %kin) {
         }
         
         if ($set) {
-            print STDERR "FOUND\n";
+            print STDERR " FOUND\n";
             
-            my $definition = $seq->description();
+            my $definition = $seqobj->description();
             $definition=~s/;$//;
             
             if ($kin{$kid}) {
@@ -476,8 +486,8 @@ foreach my $kid (keys %kin) {
             }
             
             if ($seqout) {
-                $seq->display_id($kid);
-                $seqout->write_seq($seq);
+                $seqobj->display_id($kid);
+                $seqout->write_seq($seqobj);
             }
         }
         
@@ -611,12 +621,12 @@ foreach my $kid (keys %kin) {
                                 }
                                 
                                 $auxseqout->write_seq($seqobj);
-            
+                            
                             } else {
-
+                                
                                 my $auxseqin = Bio::SeqIO->new( -file   => "$tmpdir/$cat/$acc.fa", 
                                                                 -format => 'FASTA' );
-
+                                
                                 $seqobj = $auxseqin->next_seq();
                                 
                             }
