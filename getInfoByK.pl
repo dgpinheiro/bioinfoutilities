@@ -216,7 +216,7 @@ foreach my $id (keys %kin) {
                 my $req_k = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$id);
                 $req_k->content_type('application/x-www-form-urlencoded');
                 $req_k->content('query=libwww-perl&mode=dist');
-                sleep(1);
+                #sleep(1);
 
                 # Pass request to the user agent and get a response back
                 my $res_k = $ua->request($req_k);
@@ -274,7 +274,7 @@ foreach my $id (keys %kin) {
                 my $req_k = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$id);
                 $req_k->content_type('application/x-www-form-urlencoded');
                 $req_k->content('query=libwww-perl&mode=dist');
-                sleep(1);
+                #sleep(1);
                 
                 # Pass request to the user agent and get a response back
                 my $res_k = $ua->request($req_k);
@@ -384,6 +384,9 @@ $LOGGER->logdie("Not found organism list") unless (scalar(keys(%{$hr_org}))>0);
 
 $|=1;
 foreach my $kid (keys %kin) {
+    
+    $kid=~s/\s+//g;
+
     #   print $kid,"\n";
     my $content_k;
     
@@ -402,7 +405,7 @@ foreach my $kid (keys %kin) {
             my $auxseqout = Bio::SeqIO->new( -file   => ">$tmpdir/$cat/$kid.txt", 
                                              -format => 'swiss', 
                                              -flush  => 0 );
-
+            
             # Create a request
             my $req_k = HTTP::Request->new(GET => 'https://www.uniprot.org/uniprot/'.$kid.'.txt');
             $req_k->content_type('application/x-www-form-urlencoded');
@@ -415,7 +418,6 @@ foreach my $kid (keys %kin) {
             # Check the outcome of the response
             if ($res_k->is_success()) {
                 $content_k = $res_k->content();
-            
             } else {
                 $LOGGER->logwarn( $res_k->status_line );
                 next;
@@ -501,7 +503,7 @@ foreach my $kid (keys %kin) {
             my $req_k = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$kid);
             $req_k->content_type('application/x-www-form-urlencoded');
             $req_k->content('query=libwww-perl&mode=dist');
-            sleep(1);
+            #sleep(1);
             
             # Pass request to the user agent and get a response back
             my $res_k = $ua->request($req_k);
@@ -587,6 +589,8 @@ foreach my $kid (keys %kin) {
                             my $cat = lc($db);
 
                             if ( ( ! -e "$tmpdir/$cat/$acc.fa") || ( -z "$tmpdir/$cat/$acc.fa") ) {
+                                
+                                mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
                             
                                 my $auxseqout = Bio::SeqIO->new( -file   => ">$tmpdir/$cat/$acc.fa", 
                                                                  -format => 'FASTA', 
