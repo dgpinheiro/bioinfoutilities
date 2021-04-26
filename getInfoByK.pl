@@ -657,7 +657,7 @@ foreach my $kid (keys %kin) {
                                             $seqobj = $auxseqin->next_seq();
 
                                         } else{
-                                            $LOGGER->logwarn( "Trying to get ".$seqid."  (". $res_s->status_line.")" );
+                                            $LOGGER->logwarn( "Trying to get [$kid] ".$seqid."  (". $res_s->status_line.")" );
                                             $trial++ if ($trial_ok);
                                             $trial_ok=undef;
                                             next;
