@@ -532,7 +532,7 @@ foreach my $kid (keys %kin) {
                         close(CONTENT);
 
                 } else {
-                    $LOGGER->logwarn( $res_k->status_line );
+                    $LOGGER->logdie( $kid.":".$res_k->status_line );
                     $trial++ if ($trial_ok);
                     $trial_ok=undef;
                     next;
@@ -600,12 +600,30 @@ foreach my $kid (keys %kin) {
                         my $seqid;
                         
                         if ($seqout) {
-                            foreach my $acc ( split(/ /, $acc_list) ) {
+
+                            my $new_acc_list=""; 
+                            my @parenthesis;
+                            my @aux=split(//, $acc_list);
+
+                            for my $j (@aux) {  
+                                if($j eq "(" ) { 
+                                    push(@parenthesis,1); 
+                                } elsif ($j eq ")") { 
+                                    pop(@parenthesis); 
+                                } else { 
+                                    $new_acc_list.=$j if (scalar(@parenthesis)==0);  
+                                }   
+                            }
+
+                            foreach my $acc ( split(/ /, $new_acc_list) ) {
                                 
-                                $acc=~s/\([^\)]+\)+//;
-                                
+                                #$acc=~s/\([^\)]+\)+//g;
+                                $acc=~s/^\s+//;
+                                $acc=~s/\s+$//;
+                                $LOGGER->logdie("Wrong Accession: $acc") if ($acc!~/^[A-Za-z0-9\_\-\.]+$/);
                                 $seqid=lc($db).':'.$acc;
                                 
+                                die "$kid/$seqid" if ($acc=~/[\(\)]/);   
                                 next if (exists $OUTPUT{$kid}->{$seqid});
 
                                 my $cat = lc($db);
