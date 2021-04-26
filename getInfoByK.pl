@@ -190,6 +190,8 @@ unless ($infile) {
     open(IN, "<", $infile) or $LOGGER->logdie($!);
     while(<IN>) {
         chomp;
+        next if ($_=~/^#/);
+
         # The file can contain ID (obligatory) and a category description
         # The ID can belongs to multiple category, so we used a HASH of HASH references
         my ($id, $desc) = split(/\t/, $_);
