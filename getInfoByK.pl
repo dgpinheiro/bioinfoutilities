@@ -364,13 +364,14 @@ unless (-e "./keggorganism.dump") {
     $hr_org = retrieve("./keggorganism.dump");
 }
 
+my %valid_org = %{ $hr_org };
 # Exclude (delete) lineages from data structure
 # according with -e command line parameter
 foreach my $code (keys %{$hr_org}) {
     foreach my $e (keys %excludes) {
-        if ($hr_org->{$code}) {
-            if ($hr_org->{$code}->{'lineage'}=~/$e/) {
-                delete( $hr_org->{$code} );
+        if ($valid_org{$code}) {
+            if ($valid_org{$code}->{'lineage'}=~/$e/) {
+                delete( $valid_org{$code} );
                 last;
             }
         }
@@ -379,8 +380,8 @@ foreach my $code (keys %{$hr_org}) {
 
 # Code for testing Hash reference structure and content of
 # KEGG Lineage Data 
-#foreach my $code (keys %{$hr_org}) {
-#    print $code,"\t",$hr_org->{$code}->{'name'},"\t",$hr_org->{$code}->{'lineage'},"\n";
+#foreach my $code (keys %valid_org) {
+#    print $code,"\t",$valid_org{$code}->{'name'},"\t",$valid_org{$code}->{'lineage'},"\n";
 #}
 
 $LOGGER->logdie("Not found organism list") unless (scalar(keys(%{$hr_org}))>0);
@@ -586,7 +587,12 @@ foreach my $kid (keys %kin) {
                     last if (($set_k)&&($line_k=~/^\S+/));
                     $set_k = 1;
                     my ($db, $acc_list) = $line_k=~/^(?:GENES)?\s+(\S+):\s+(.+)/;
-                    if (exists $hr_org->{lc($db)}) {
+                    if ( (exists $valid_org{lc($db)}) || (! exists $hr_org->{lc($db)}) ) {
+
+                        if (! exists $hr_org->{lc($db)}) {
+                            $LOGGER->logwarn("Not found organism code \"".lc($db)."\"");
+                        }
+
                         unless (defined $set_print) {
 
                             if ($kin{$kid}) {
