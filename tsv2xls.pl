@@ -162,6 +162,9 @@ while(<IN>) {
 		if ($d =~/^[\+\-]?\d+(?:\.\d+)?$/) {
 			$worksheet->write($row, $col, $d+0);
 		} else {
+			if ($d eq '=') {
+				$d=quotemeta($d);
+			}				
 			$worksheet->write($row, $col, $d);
 		}
 		$col++;
