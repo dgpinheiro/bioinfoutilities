@@ -179,9 +179,9 @@ if (is.na(tryCatch(
 		dispersions(dds) <- mcols(dds)$dispGeneEst
 }
 
-
 cat("DESeq2...\n")
-dds <- DESeq(dds, parallel=TRUE)
+#dds <- DESeq(dds, parallel=TRUE)
+dds = nbinomWaldTest(dds)
 
 deseq_ncounts <- as.data.frame( counts(dds, normalized=TRUE) )
 deseq_ncounts[[idcol]] <- rownames(deseq_ncounts)
