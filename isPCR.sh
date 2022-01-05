@@ -68,7 +68,7 @@ if [ ! ${taboutfile} ]; then
 	echo "[ERROR] Missing tabbed text output file" 1>&2
 	exit
 else
-	if [ ! -e ${taboutfile} ]; then
+	if [ ! -d $(dirname ${taboutfile}) ]; then
 		echo "[ERROR] Wrong tabbed text output file (${taboutfile})" 1>&2
 		exit
 	fi
@@ -81,7 +81,7 @@ cmdline=""
 if [ ! ${fastaoutfile} ]; then
 	echo "[WARNING] Missing fasta output file" 1>&2
 else
-	if [ ! -e ${fastaoutfile} ]; then
+	if [ ! -d $(dirname ${fastaoutfile}) ]; then
 		echo "[ERROR] Wrong fasta output file (${fastaoutfile})" 1>&2
 		exit
 	else
