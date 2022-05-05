@@ -110,7 +110,10 @@ y.df <- read.delim(argsL[['y']], header=argsL[['noh.y']], stringsAsFactors=FALSE
 #print(head(x.df))
 #print(head(y.df))
 
+#q(save="yes")
+
 xy.diff <- as.data.frame(setdiff( x.df[[argsL[['by.x']]]], y.df[[argsL[['by.y']]]] ));
+colnames(xy.diff) <- "V1"
 
 #print(xy.diff)
 
