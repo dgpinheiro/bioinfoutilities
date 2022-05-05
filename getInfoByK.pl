@@ -85,7 +85,7 @@ use DBI;
 
 use constant MAX_TRIALS_TO_FETCH=>2;
 
-my ($level,$kuin,$infile,$excludes_line,$outfile,$tmpdir,$db,$fafile);
+my ($level,$kuin,$infile,$excludes_line,$outfile,$tmpdir,$db,$fafile,$maxseqs);
 # Command line named arguments (see function Usage() )
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -96,7 +96,8 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "o|outfile=s"=>\$outfile,
             "t|tmpdir=s"=>\$tmpdir,
             "d|db=s"=>\$db,
-            "f|fasta=s"=>\$fafile
+            "f|fasta=s"=>\$fafile,
+            "m|maxseqs=i"=>\$maxseqs
     ) or &Usage();
 
 
@@ -177,9 +178,10 @@ unless ($infile) {
     # Only one ID (using -k)
      
     $LOGGER->logdie("Missing k id or input file with k ids") unless ($kuin);
-
-    $kin{$kuin}->{''} = undef;
-
+    
+    foreach my $k (split(/,/, $kuin)) {
+        $kin{$k}->{''} = undef;
+    }
     undef($kuin);
 
 } else {
@@ -214,6 +216,8 @@ foreach my $id (keys %kin) {
             
             my $content_k;
             
+            mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
+
             # verify if the web content was already saved in a file and that file is not empty
             if ( ( ! -e "$tmpdir/$cat/$id.txt") || ( -z "$tmpdir/$cat/$id.txt") ) {
                 # Create a request
@@ -272,6 +276,8 @@ foreach my $id (keys %kin) {
             delete($kin{$id});
             
             my $content_k;
+            
+            mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
             
             if ( ( ! -e "$tmpdir/$cat/$id.txt") || ( -z "$tmpdir/$cat/$id.txt") ) {
                 # Create a request
@@ -363,6 +369,20 @@ unless (-e "./keggorganism.dump") {
     # Retrieve the hash reference from a file
     $hr_org = retrieve("./keggorganism.dump");
 }
+
+# The Addendum category is a PubMed-based collection of protein sequences whose functions are experimentally characterized.
+$hr_org->{'ag'} = {'id'=>'T10000',
+                   'name'=>'KEGG Addendum',
+                   'lineage'=>''};
+# Genes and proteins in viruses
+$hr_org->{'vg'} = {'id'=>'T40000',
+                   'name'=>'KEGG Viruses (Genes and proteins)',
+                   'lineage'=>''};
+# Mature peptides in viruses
+$hr_org->{'vp'} = {'id'=>'T40000',
+                   'name'=>'KEGG Viruses (Mature peptides)',
+                   'lineage'=>''};
+
 
 my %valid_org = %{ $hr_org };
 # Exclude (delete) lineages from data structure
@@ -508,6 +528,8 @@ foreach my $kid (keys %kin) {
 
         my $trial_ok= undef;
         my $trial=1;
+            
+        mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
 
         while ( (! defined $trial_ok) && ($trial <= MAX_TRIALS_TO_FETCH) ) {
             if ($trial>1) {
@@ -551,12 +573,30 @@ foreach my $kid (keys %kin) {
             
             my $set_k = undef;
             my $name_k = undef;
+            my $entry_k = undef;
             my $definition_k = undef;
             my $name;
+            my $entry;
             my $definition;
             my $set_print=undef;
-            
+            my $entry_rna;
+
             foreach my $line_k ( split(/\n/, $content_k) ) {
+                if (($line_k =~ /^ENTRY/)||($entry_k)) {
+                    if (($entry_k)&&($line_k=~/^\S+/)) {
+                        $entry_k=undef;
+                    } else {
+                        $entry_k=1;
+                        my ($tmpentry) = $line_k=~/^(?:ENTRY)?\s+(\S+.*)/;
+                        if ($entry) {
+                            $entry.=' ';
+                        }
+                        $entry.=$tmpentry;
+                    } 
+                }
+                
+                $entry_rna=1 if (($entry)&&($entry =~/RNA/));
+                
                 if (($line_k =~ /^NAME/)||($name_k)) {
                     if (($name_k)&&($line_k=~/^\S+/)) {
                         $name_k=undef;
@@ -583,6 +623,7 @@ foreach my $kid (keys %kin) {
                     } 
                 }
                 
+                $definition||='';
                 if (($line_k =~ /^GENES/)||($set_k)) {
                     last if (($set_k)&&($line_k=~/^\S+/));
                     $set_k = 1;
@@ -590,14 +631,14 @@ foreach my $kid (keys %kin) {
                     if ( (exists $valid_org{lc($db)}) || (! exists $hr_org->{lc($db)}) ) {
 
                         if (! exists $hr_org->{lc($db)}) {
-                            $LOGGER->logwarn("Not found organism code \"".lc($db)."\"");
+                            $LOGGER->logwarn("Not found organism code \"".lc($db)."\" for $acc_list of $kid");
                         }
 
                         unless (defined $set_print) {
 
                             if ($kin{$kid}) {
                                 foreach my $d (keys %{ $kin{$kid} }) {
-                                    $PRINT{$kid} = ''.(($d) ? $d."\t" : '').$kid."\t".$name."\t".$definition;
+                                    $PRINT{$kid} = ''.(($d) ? $d."\t" : '').$kid."\t".$name."\t".$definition."\t".((defined $entry_rna) ? "RNA" : "");
                                 }                                            
                             }
 
@@ -622,75 +663,77 @@ foreach my $kid (keys %kin) {
                                     $new_acc_list.=$j if (scalar(@parenthesis)==0);  
                                 }   
                             }
-
-                            foreach my $acc ( split(/ /, $new_acc_list) ) {
-                                
-                                #$acc=~s/\([^\)]+\)+//g;
-                                $acc=~s/^\s+//;
-                                $acc=~s/\s+$//;
-                                $LOGGER->logdie("Wrong Accession: $acc") if ($acc!~/^[A-Za-z0-9\_\-\.]+$/);
-                                $seqid=lc($db).':'.$acc;
-                                
-                                die "$kid/$seqid" if ($acc=~/[\(\)]/);   
-                                next if (exists $OUTPUT{$kid}->{$seqid});
-
-                                my $cat = lc($db);
-
-                                if ( ( ! -e "$tmpdir/$cat/$acc.fa") || ( -z "$tmpdir/$cat/$acc.fa") ) {
+                            
+                            unless ($entry_rna) {
+                                foreach my $acc ( split(/ /, $new_acc_list) ) {
                                     
-                                    mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
-                                
-                                    my $auxseqout = Bio::SeqIO->new( -file   => ">$tmpdir/$cat/$acc.fa", 
-                                                                     -format => 'FASTA', 
-                                                                     -flush  => 0 );
+                                    #$acc=~s/\([^\)]+\)+//g;
+                                    $acc=~s/^\s+//;
+                                    $acc=~s/\s+$//;
+                                    $LOGGER->logdie("Wrong Accession: $acc") if ($acc!~/^[A-Za-z0-9\_\-\.]+$/);
+                                    $seqid=lc($db).':'.$acc;
                                     
-                                    if (defined $inx) {
-                                        $seqobj = $inx->fetch($seqid);
-                                    }
+                                    die "$kid/$seqid" if ($acc=~/[\(\)]/);   
+                                    next if (exists $OUTPUT{$kid}->{$seqid});
 
-                                    unless ($seqobj) {
-                                        my $req_s = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$seqid.'/aaseq');
-                                        $req_s->content_type('application/x-www-form-urlencoded');
-                                        $req_s->content('query=libwww-perl&mode=dist');
-                                        #sleep(1);
-                                        
-                                        my $res_s= $ua->request($req_s);
-                                        my $content_s;
-                                        
-                                        if ($res_s->is_success()) {
-                                            $content_s = $res_s->content();
+                                    my $cat = lc($db);
 
-                                            my $auxseqin = Bio::SeqIO->new(-string=> $content_s, -format => 'FASTA');
+                                    if ( ( ! -e "$tmpdir/$cat/$acc.fa") || ( -z "$tmpdir/$cat/$acc.fa") ) {
                                         
-                                            $seqobj = $auxseqin->next_seq();
+                                        mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
+                                    
+                                        my $auxseqout = Bio::SeqIO->new( -file   => ">$tmpdir/$cat/$acc.fa", 
+                                                                         -format => 'FASTA', 
+                                                                         -flush  => 0 );
+                                        
+                                        if (defined $inx) {
+                                            $seqobj = $inx->fetch($seqid);
+                                        }
 
-                                        } else{
-                                            $LOGGER->logwarn( "Trying to get [$kid] ".$seqid."  (". $res_s->status_line.")" );
-                                            $trial++ if ($trial_ok);
-                                            $trial_ok=undef;
-                                            next;
+                                        unless ($seqobj) {
+                                            my $req_s = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$seqid.'/aaseq');
+                                            $req_s->content_type('application/x-www-form-urlencoded');
+                                            $req_s->content('query=libwww-perl&mode=dist');
+                                            #sleep(1);
+                                            
+                                            my $res_s= $ua->request($req_s);
+                                            my $content_s;
+                                            
+                                            if ($res_s->is_success()) {
+                                                $content_s = $res_s->content();
+
+                                                my $auxseqin = Bio::SeqIO->new(-string=> $content_s, -format => 'FASTA');
+                                            
+                                                $seqobj = $auxseqin->next_seq();
+
+                                            } else{
+                                                $LOGGER->logwarn( "Trying to get [$kid] ".$seqid."  (". $res_s->status_line.")" );
+                                                $trial++ if ($trial_ok);
+                                                $trial_ok=undef;
+                                                next;
+                                            }
+                                            
+                                            
+                                        } else {
+                                            $seqobj->desc("$kid $definition | Recovered by searching KOBAS sequences");
                                         }
                                         
-                                        
+                                        $auxseqout->write_seq($seqobj);
+                                    
                                     } else {
-                                        $seqobj->desc("$kid $definition | Recovered by searching KOBAS sequences");
+                                        
+                                        my $auxseqin = Bio::SeqIO->new( -file   => "$tmpdir/$cat/$acc.fa", 
+                                                                        -format => 'FASTA' );
+                                        
+                                        $seqobj = $auxseqin->next_seq();
+                                        
                                     }
                                     
-                                    $auxseqout->write_seq($seqobj);
-                                
-                                } else {
+                                    $seqobj->display_id($kid.':'.$seqid);
+                                    $seqobj->desc("");
                                     
-                                    my $auxseqin = Bio::SeqIO->new( -file   => "$tmpdir/$cat/$acc.fa", 
-                                                                    -format => 'FASTA' );
-                                    
-                                    $seqobj = $auxseqin->next_seq();
-                                    
+                                    $OUTPUT{$kid}->{$seqid} = $seqobj if ($seqobj);
                                 }
-                                
-                                $seqobj->display_id($kid.':'.$seqid);
-                                $seqobj->desc("");
-                                 
-                                $OUTPUT{$kid}->{$seqid} = $seqobj if ($seqobj);
                             }
                         }
                     }
@@ -710,8 +753,13 @@ foreach my $kid (keys %PRINT) {
 
 if ($seqout) {
     foreach my $kid (keys %OUTPUT) {
+        my $c=0;
         foreach my $seqid (keys %{$OUTPUT{$kid}}) {
+            if ($maxseqs) {
+                last if ($c >= $maxseqs);
+            }
             $seqout->write_seq( $OUTPUT{$kid}->{$seqid} );
+            $c++;
         }
     }
     $seqout = undef;
