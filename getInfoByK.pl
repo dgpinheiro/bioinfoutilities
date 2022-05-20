@@ -82,10 +82,11 @@ use Bio::SeqIO;
 use Bio::Seq;
 use Bio::Index::Fasta;
 use DBI;
+use FileHandle;
 
 use constant MAX_TRIALS_TO_FETCH=>2;
 
-my ($level,$kuin,$infile,$excludes_line,$outfile,$tmpdir,$db,$fafile,$maxseqs);
+my ($level,$kuin,$infile,$excludes_line,$outfile,$tmpdir,$db,$fafile,$maxseqs,$genuspath);
 # Command line named arguments (see function Usage() )
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -97,7 +98,8 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "t|tmpdir=s"=>\$tmpdir,
             "d|db=s"=>\$db,
             "f|fasta=s"=>\$fafile,
-            "m|maxseqs=i"=>\$maxseqs
+            "m|maxseqs=i"=>\$maxseqs,
+            "g|genuspath=s"=>\$genuspath
     ) or &Usage();
 
 
@@ -115,6 +117,16 @@ if ($level) {
     $LOGGER->logdie("Wrong log level ($level). Choose one of: ".join(', ', keys %LEVEL)) unless (exists $LEVEL{$level});
     Log::Log4perl->easy_init($LEVEL{$level});
 }
+
+my $genusfh;
+if ($genuspath) {
+    $genusfh=FileHandle->new();
+    if (! $genusfh->open("> $genuspath")) {
+        $LOGGER->logdie("Error: $!");
+    }
+}
+
+
 
 #DataBase handle (DB connection)
 my $dbh;
@@ -151,6 +163,7 @@ if ($db) {
 
 # Create a user agent object
 use LWP::UserAgent;
+
 my $ua = LWP::UserAgent->new;
 $ua->agent("MyApp/0.1 ");
 
@@ -409,9 +422,10 @@ $LOGGER->logdie("Not found organism list") unless (scalar(keys(%{$hr_org}))>0);
 $|=1;
 my %OUTPUT;
 my %PRINT;
+my %genus;
 
 foreach my $kid (keys %kin) {
-    
+       
     $kid=~s/\s+//g;
 
     #   print $kid,"\n";
@@ -528,7 +542,8 @@ foreach my $kid (keys %kin) {
 
         my $trial_ok= undef;
         my $trial=1;
-            
+        
+
         mkdir("$tmpdir/$cat/") unless (-d "$tmpdir/$cat");
 
         while ( (! defined $trial_ok) && ($trial <= MAX_TRIALS_TO_FETCH) ) {
@@ -638,7 +653,9 @@ foreach my $kid (keys %kin) {
 
                             if ($kin{$kid}) {
                                 foreach my $d (keys %{ $kin{$kid} }) {
+
                                     $PRINT{$kid} = ''.(($d) ? $d."\t" : '').$kid."\t".$name."\t".$definition."\t".((defined $entry_rna) ? "RNA" : "");
+
                                 }                                            
                             }
 
@@ -647,13 +664,12 @@ foreach my $kid (keys %kin) {
                         
                         my $seqobj;
                         my $seqid;
-                        
-                        if ($seqout) {
-
+                            
                             my $new_acc_list=""; 
                             my @parenthesis;
                             my @aux=split(//, $acc_list);
-
+                            
+                            my @new_acc;
                             for my $j (@aux) {  
                                 if($j eq "(" ) { 
                                     push(@parenthesis,1); 
@@ -663,10 +679,19 @@ foreach my $kid (keys %kin) {
                                     $new_acc_list.=$j if (scalar(@parenthesis)==0);  
                                 }   
                             }
+                            @new_acc = split(/ /, $new_acc_list);
                             
+                            if (scalar(@new_acc)>=1) {
+                                my ($kg)=$hr_org->{lc($db)}->{'name'}=~/^(\S+)/;
+                                push(@{ $genus{$kid}->{$kg} }, $hr_org->{lc($db)}->{'name'});
+                            }
+                            
+                        if ($seqout) {
+
+
                             unless ($entry_rna) {
-                                foreach my $acc ( split(/ /, $new_acc_list) ) {
-                                    
+                                foreach my $acc ( @new_acc ) {
+
                                     #$acc=~s/\([^\)]+\)+//g;
                                     $acc=~s/^\s+//;
                                     $acc=~s/\s+$//;
@@ -746,9 +771,24 @@ foreach my $kid (keys %kin) {
 
     }        
 }
-    
+
+
 foreach my $kid (keys %PRINT) {
         print $PRINT{$kid},"\n";
+        if ($genusfh) {
+            if ($genus{$kid}) {
+                if (scalar(keys %{$genus{$kid}})) {
+                    foreach my $kg (sort { scalar(@{$genus{$kid}->{$b}}) <=> scalar(@{$genus{$kid}->{$a}}) } keys %{$genus{$kid}}) {
+                        
+                        print { $genusfh } $kid,"\t",$kg,"\t",scalar(@{$genus{$kid}->{$kg}}),"\n";
+                    } 
+                }
+            }
+        }            
+}
+
+if ($genusfh) {
+    $genusfh->close();
 }
 
 if ($seqout) {
@@ -793,6 +833,7 @@ Argument(s)
         -t      --tmpdir    Temporary directory [Default: /tmp]
 		-d		--db		KOBAS db SQLite file (ko.db)
         -f      --fasta     KOBAS FASTA file (ko.pep.fasta)
+        -g      --genuspath Path to genus info to this file
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
