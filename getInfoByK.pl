@@ -558,7 +558,7 @@ foreach my $kid (keys %kin) {
                 my $req_k = HTTP::Request->new(GET => 'http://rest.kegg.jp/get/'.$kid);
                 $req_k->content_type('application/x-www-form-urlencoded');
                 $req_k->content('query=libwww-perl&mode=dist');
-                #sleep(1);
+                sleep(1);
                 
                 # Pass request to the user agent and get a response back
                 my $res_k = $ua->request($req_k);
@@ -572,7 +572,7 @@ foreach my $kid (keys %kin) {
                         close(CONTENT);
 
                 } else {
-                    $LOGGER->logdie( $kid.":".$res_k->status_line );
+                    $LOGGER->logwarn( $kid.":".$res_k->status_line );
                     $trial++ if ($trial_ok);
                     $trial_ok=undef;
                     next;
