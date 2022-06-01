@@ -161,7 +161,7 @@ while(<IN>) {
         chomp($script_rest_res);
         my ($rest_mod_id, $rest_steps_found, $rest_steps_needed) = split(/\t/, $script_rest_res);
 
-        print join("\t", @F, $steps_found, $steps_needed, join(',', @ko), $rest_steps_found),"\n" if ($rest_steps_found != $steps_found);
+        print join("\t", @F, $steps_found, $steps_needed, join(',', @ko), $rest_steps_found),"\n";
 
     } else {        
         print join("\t", @F, $steps_found, $steps_needed),"\n";
