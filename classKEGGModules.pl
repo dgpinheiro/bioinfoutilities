@@ -76,7 +76,7 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level,$infile,$modcol,$kcol,$restfile);
+my ($level,$infile,$modcol,$kcol,$restfile,$modfile);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
@@ -84,7 +84,8 @@ GetOptions( "h|?|help" => sub { &Usage(); },
             "i|infile=s"=>\$infile,
             "m|modcol=i"=>\$modcol,
             "k|kcol=i"=>\$kcol,
-            "r|kofile=s"=>\$restfile
+            "r|kofile=s"=>\$restfile,
+            "f|modfile=s"=>\$modfile
     ) or &Usage();
 
 
@@ -104,6 +105,10 @@ if ($level) {
 
 $LOGGER->logdie("Missing input file") unless ($infile);
 $LOGGER->logdie("Wrong input file ($infile)") unless (-e $infile);
+
+if ($modfile) {
+    $LOGGER->logdie("Wrong modfile ($modfile)") unless (-e $modfile);
+}
 
 my %restrict;
 
@@ -138,7 +143,7 @@ if ($restfile) {
 while(<IN>) {
     chomp;
     my @F = split(/\t/, $_);
-    my $script_cmd='getKEGGModuleSteps.pl -m '.$F[$modcol-1].' -K '.$F[$kcol-1];
+    my $script_cmd='getKEGGModuleSteps.pl '.(($modfile) ? ' -f '.$modfile : '').' -m '.$F[$modcol-1].' -K '.$F[$kcol-1];
     my $script_res=`$script_cmd`;
     chomp($script_res);
     my ($mod_id, $steps_found, $steps_needed) = split(/\t/, $script_res);
@@ -151,7 +156,7 @@ while(<IN>) {
         }
         my $k_param=join(',', @ko);
         $k_param||='NA';
-        my $script_rest_cmd='getKEGGModuleSteps.pl -m '.$F[$modcol-1].' -K '.$k_param;
+        my $script_rest_cmd='getKEGGModuleSteps.pl '.(($modfile) ? ' -f '.$modfile : '').' -m '.$F[$modcol-1].' -K '.$k_param;
         my $script_rest_res=`$script_rest_cmd`;
         chomp($script_rest_res);
         my ($rest_mod_id, $rest_steps_found, $rest_steps_needed) = split(/\t/, $script_rest_res);
@@ -183,6 +188,7 @@ Argument(s)
         -m      --modcol    Column number for KEGG module ID [Default: 1]
         -k      --kcol      Column number for KEGG Orthologies [Default: 2]
         -r      --kofile    KOs file to restrict analysis
+        -f      --modfile   Modules file
 
 END_USAGE
     print STDERR "\nERR: $msg\n\n" if $msg;
