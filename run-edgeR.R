@@ -121,9 +121,9 @@ colnames(df)[ colnames(df) %in% g$id ] <- as.character(g[['name']])
 
 group <- factor( g$group )
 
-keep <- rowSums(df[, g$name]) >= 1
+keep <- rowSums(df[, as.character(g$name)]) >= 1
 
-y <- DGEList(counts=df[keep, g$name], group=group)
+y <- DGEList(counts=df[keep, as.character(g$name)], group=group)
 
 
 design <- model.matrix(~0+group, data=y$samples)
