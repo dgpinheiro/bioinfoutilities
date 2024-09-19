@@ -212,7 +212,7 @@ foreach my $kid (keys %KO) {
                     last;
                 } else {
                     $set_pathway = 1;
-                    if ($line=~/\s+((?:ko)\d{5})\s+.*/) {
+                    if ($line=~/\s+((?:ko|map)\d{5})\s+.*/) {
                         my $ko = $1;
                         $KO{$kid}->{'ko'}->{$ko} = undef;
                     } elsif ($line=~/\s+((?:M)\d{5})\s+.*/) {
