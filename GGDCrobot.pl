@@ -76,13 +76,14 @@ INIT {
     $LOGGER = Log::Log4perl->get_logger($0);
 }
 
-my ($level, $qfile, $rfiles, $email, $blast, $threshold, $wait);
+my ($level, $qfile, $rfiles, $email, $blast, $threshold, $wait, $gfile);
 
 Usage("Too few arguments") if $#ARGV < 0;
 GetOptions( "h|?|help" => sub { &Usage(); },
             "l|level=s"=> \$level,
             "q|qfile=s"=>\$qfile,
             "r|rfiles=s"=>\$rfiles,
+	    "g|gfile=s"=>\$gfile,
             "e|email=s"=>\$email,
             "b|blast=s"=>\$blast,
             "t|threshold=i"=>\$threshold,
@@ -113,27 +114,46 @@ $LOGGER->logdie("Threshold must be in this range: 0 - 100") if (($threshold>100)
 $LOGGER->logdie("Missing query file") unless ($qfile);
 $LOGGER->logdie("Wrong query file ($qfile)") unless (-e $qfile);
 
-$LOGGER->logdie("Missing reference file") unless ($rfiles);
-my @rfile=split(/,/, $rfiles);
-
 my @multipleRefGenomes;
-foreach my $rf (@rfile) {
-    $LOGGER->logdie("Wrong reference file ($rf) in reference file list") unless (-e $rf);
-    my $rcontent='';
-    open(REF, "<", $rf);
-    while(<REF>) {
-        $rcontent.=$_;
-    }
-    close(REF);
 
-    push(@multipleRefGenomes, {
-            filename => basename($rf),
-            content  => $rcontent,
-            content_type  => 'text/plain'
-        }
-    );
-    
+my @rfile;
+my $gcontent;
+
+if ($rfiles) {
+	@rfile=split(/,/, $rfiles);
+
+	foreach my $rf (@rfile) {
+	    $LOGGER->logdie("Wrong reference file ($rf) in reference file list") unless (-e $rf);
+	    my $rcontent='';
+	    open(REF, "<", $rf);
+	    while(<REF>) {
+		$rcontent.=$_;
+	    }
+	    close(REF);
+
+	    push(@multipleRefGenomes, {
+		    filename => basename($rf),
+		    content  => $rcontent,
+		    content_type  => 'text/plain'
+		}
+	    );
+	    
+	}
+} elsif ($gfile) {
+
+	$gcontent='';
+	open(REFACCS, "<", $gfile);
+	while(<REFACCS>) {
+	    if ($_=~/^\S+/) {
+		    $gcontent.=$_;
+	    }
+	}
+	close(REFACCS);
+	
+} else {
+	$LOGGER->logdie("Missing at least one reference fasta file or one text file with Genbank accs");
 }
+
 
 $blast||='GBDP2_BLASTPLUS';
 
@@ -168,23 +188,44 @@ while(<QUERY>) {
 }
 close(QUERY);
 
-print STDERR "Job: ".basename($qfile)." X ".scalar(@rfile)." genome files\n";
-
-my $response = $http->post_multipart( $url, {
+my $hr_input_params = {
     targetName => '',
     targetGenome => {
         filename => basename($qfile),
         content  => $qcontent,
         content_type  => 'text/plain'
         },
-    'multipleRefGenomes[]' => \@multipleRefGenomes,
     'email' => $email,
     'blastVariant' => $blast
-} );
+ };
 
+if (scalar(@rfile)) {
+	$LOGGER->info("Job: ".basename($qfile)." X ".scalar(@rfile)." genome files\n");
+    	$hr_input_params->{'multipleRefGenomes[]'} = \@multipleRefGenomes;
+} elsif ($gcontent) {
+	my $nlines = () = $gcontent =~ /\n/g;
+	# Add 1 if the last line doesn't end with a newline
+	$nlines++ if $gcontent !~ /\n\z/;
 
+	$LOGGER->info("Job: ".basename($qfile)." X ".$nlines." genome accessions\n");
+    	$hr_input_params->{'refGenbank'} = $gcontent;
+} else {
+	$LOGGER->logdie("Job sent failed. Wrong input parameters");
+}
 
-#print $response->{content} if length $response->{content};
+my $response = $http->post_multipart( $url, $hr_input_params);
+
+if (length $response->{content}) {
+	if ($response->{content}=~/your job with ID <b>([^<]+)<\/b> has been successfully submitted/) {
+		print "Your job with ID $1 has been successfully submitted and the results should be found at $email email box\n";
+	} else {
+		my $randnum=rand(10000);
+		open(OUT,">", "/tmp/GGDCrobot_error_$randnum.html") or $LOGGER->logdie("$!");
+		print OUT $response->{content};
+		close(OUT);
+		$LOGGER->logdie("Something wrong with this submission. See the content of /tmp/GGDCrobot_error_$randnum.html");
+	}
+}
 
 # Subroutines
 
@@ -202,8 +243,9 @@ Argument(s)
 
         -h      --help      Help
         -l      --level     Log level [Default: FATAL]
-        -q      --qfile     Query file
-        -r      --rfiles    Reference files separated by comma
+        -q      --qfile     Query fasta file
+        -r      --rfiles    Reference fasta files separated by comma
+	-g	--gfile	    Text file with Genbank references. One line per genome. If genome consists of multiple accessions provide these either separated by blanks (e.g. 'AE000782 AE000783 AE000784') or as a range (e.g. 'AE000782-AE000784')
         -e      --email     Email
         -b      --blast     blastVariant {GBDP2_BLASTPLUS,GBDP2_BLAT,GBDP2_BLASTZ,GBDP2_WU-BLAST,GBDP2_MUMMER} [Default: GBDP2_BLASTPLUS]
         -t      --threshold Threshold for current slot usage (wait if current slot usage > than this threshold to send a job) Range: 0-100 [Default: 50]
