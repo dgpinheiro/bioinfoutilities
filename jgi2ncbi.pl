@@ -103,35 +103,63 @@ $LOGGER->logdie("Missing input JGI taxon_oid") unless ($input);
     
 use JSON::Parse "parse_json"; 
 
-use WWW::Curl::Easy;
+#use WWW::Curl::Easy;
 
-my $curl = WWW::Curl::Easy->new;
+#my $curl = WWW::Curl::Easy->new;
 
-$curl->setopt(CURLOPT_HEADER, 0);
-$curl->setopt(CURLOPT_URL, 'https://taxonomy.jgi-psf.org/img/'.$input);
+#$curl->setopt(CURLOPT_HEADER, 0);
+#$curl->setopt(CURLOPT_URL, 'https://taxonomy.jgi-psf.org/img/'.$input);
+
 
 # A filehandle, reference to a scalar or reference to a typeglob can be used here.
-my $response_body;
-$curl->setopt(CURLOPT_WRITEDATA,\$response_body);
+#my $response_body;
+#$curl->setopt(CURLOPT_WRITEDATA,\$response_body);
+
+### Example: https://taxonomy.jgi.doe.gov/img/2724679250
+
+use LWP::UserAgent;
+
+my $ua = LWP::UserAgent->new;
+
+$ua->ssl_opts(
+    verify_hostname => 0
+);
+
+my $response = $ua->get('https://img.jgi.doe.gov/cgi-bin/genomesMetadata.cgi?ids='.$input);
+#my $response = $ua->get('https://taxonomy.jgi-psf.org/img/'.$input);
+ 
+my $response_body='';
+if ($response->is_success) {
+    $response_body=$response->decoded_content;
+}
+else {
+    die $response->status_line;
+}
+
+my $perl = parse_json($response_body); 
+        
+
+print $perl->{$input}->{"ncbi_taxon_id"},"\n" if (($perl)&&($perl->{$input})&&($perl->{$input}->{"ncbi_taxon_id"}));
+
 
 # Starts the actual request
-my $retcode = $curl->perform;
-
+#my $retcode = $curl->perform;
+#
 # Looking at the results...
-if ($retcode == 0) {
-        #print("Transfer went ok\n");
-        my $response_code = $curl->getinfo(CURLINFO_HTTP_CODE);
-        # judge result and next action based on $response_code
-        #print("Received response: $response_body\n");
-    
-        my $perl = parse_json($response_body); 
+#if ($retcode == 0) {
+#       #print("Transfer went ok\n");
+#	my $response_code = $curl->getinfo(CURLINFO_HTTP_CODE);
+#        # judge result and next action based on $response_code
+#	print("Received response: $response_body\n");
+#
+#	my $perl = parse_json($response_body); 
         
-        print $perl->{$input}->{"tax_id"},"\n" if (($perl)&&($perl->{$input})&&($perl->{$input}->{"tax_id"}));
-
-} else {
-        # Error code, type of error, error message
-        print("An error happened: $retcode ".$curl->strerror($retcode)." ".$curl->errbuf."\n");
-}
+#	print $perl->{$input}->{"tax_id"},"\n" if (($perl)&&($perl->{$input})&&($perl->{$input}->{"tax_id"}));
+#
+#} else {
+#        # Error code, type of error, error message
+#	print("An error happened: $retcode ".$curl->strerror($retcode)." ".$curl->errbuf."\n");
+#}
 
 
 
